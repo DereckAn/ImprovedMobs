@@ -9,7 +9,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.goal.Goal;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.UseAnim;
+import net.minecraft.world.item.ItemUseAnimation;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.util.EnumSet;
@@ -85,7 +85,7 @@ public class ItemUseGoal extends Goal {
             this.calculateAi();
             return;
         }
-        if (EntityFlags.get(this.living).isShieldDisabled() && this.living.getItemInHand(this.hand).getUseAnimation() == UseAnim.BLOCK) {
+        if (EntityFlags.get(this.living).isShieldDisabled() && this.living.getItemInHand(this.hand).getUseAnimation() == ItemUseAnimation.BLOCK) {
             return;
         }
         LivingEntity target = this.living.getTarget();

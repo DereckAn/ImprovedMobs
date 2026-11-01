@@ -1,7 +1,8 @@
 package io.github.flemmli97.improvedmobs.fabric;
 
-import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeConfigRegistry;
-import fuzs.forgeconfigapiport.fabric.api.neoforge.v4.NeoForgeModConfigEvents;
+import net.fabricmc.fabric.api.resource.v1.DataResourceLoader;
+import fuzs.forgeconfigapiport.fabric.api.v5.ConfigRegistry;
+import fuzs.forgeconfigapiport.fabric.api.v5.ModConfigEvents;
 import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import io.github.flemmli97.improvedmobs.api.datapack.EntityOverridesManager;
 import io.github.flemmli97.improvedmobs.api.datapack.ItemUseLookupManager;
@@ -17,8 +18,6 @@ import io.github.flemmli97.improvedmobs.common.network.S2CDiffcultyValue;
 import io.github.flemmli97.improvedmobs.common.network.S2CShowDifficulty;
 import io.github.flemmli97.improvedmobs.common.registry.ImprovedMobsAttachments;
 import io.github.flemmli97.improvedmobs.fabric.events.EventHandler;
-import io.github.flemmli97.improvedmobs.fabric.integration.difficulty.LevelZDifficulty;
-import io.github.flemmli97.improvedmobs.fabric.integration.difficulty.PlayerEXDifficulty;
 import io.github.flemmli97.tenshilib.fabric.loader.events.CommonSetupEvent;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
@@ -31,17 +30,9 @@ import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.event.player.UseEntityCallback;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.PackType;
-import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraft.util.profiling.ProfilerFiller;
 import net.neoforged.fml.config.ModConfig;
 
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 
 public class ImprovedMobsFabric implements ModInitializer {
 
@@ -50,7 +41,7 @@ public class ImprovedMobsFabric implements ModInitializer {
         ImprovedMobsAttachments.ATTACHMENTS.registerContent();
         ItemUseRegistry.initBuiltin();
         DynamicTags.init();
-        ServerTickEvents.END_WORLD_TICK.register(EventCalls::tick);
+        ServerTickEvents.END_LEVEL_TICK.register(EventCalls::tick);
         CommandRegistrationCallback.EVENT.register((dispatcher, context, selection) -> ImprovedMobsCommand.register(dispatcher));
         ServerEntityEvents.ENTITY_LOAD.register(EventHandler::onEntityLoad);
         UseBlockCallback.EVENT.register(EventHandler::openTile);
@@ -58,72 +49,38 @@ public class ImprovedMobsFabric implements ModInitializer {
         ServerPlayConnectionEvents.JOIN.register(EventHandler::worldJoin);
         CommonLifecycleEvents.TAGS_LOADED.register((reg, client) -> {
             if (!client) {
+                if (ItemUseLookupManager.getInstance() != null)
+                    ItemUseLookupManager.getInstance().onReloadFinished();
                 EventCalls.onTagReloaded();
             }
         });
 
         registerPacket();
-        NeoForgeModConfigEvents.loading(ImprovedMobs.MODID).register(config -> {
+        ModConfigEvents.loading(ImprovedMobs.MODID).register(config -> {
             if (config.getSpec() == ConfigSpecs.CLIENT_SPEC)
                 ConfigLoader.loadClient();
             if (config.getSpec() == ConfigSpecs.COMMON_SPEC)
                 ConfigLoader.loadCommon();
         });
-        NeoForgeModConfigEvents.reloading(ImprovedMobs.MODID).register(config -> {
+        ModConfigEvents.reloading(ImprovedMobs.MODID).register(config -> {
             if (config.getSpec() == ConfigSpecs.CLIENT_SPEC)
                 ConfigLoader.loadClient();
             if (config.getSpec() == ConfigSpecs.COMMON_SPEC)
                 ConfigLoader.loadCommon();
         });
-        NeoForgeConfigRegistry.INSTANCE.register(ImprovedMobs.MODID, ModConfig.Type.CLIENT, ConfigSpecs.CLIENT_SPEC, "improvedmobs/client.toml");
-        NeoForgeConfigRegistry.INSTANCE.register(ImprovedMobs.MODID, ModConfig.Type.COMMON, ConfigSpecs.COMMON_SPEC, "improvedmobs/common.toml");
+        ConfigRegistry.INSTANCE.register(ImprovedMobs.MODID, ModConfig.Type.CLIENT, ConfigSpecs.CLIENT_SPEC, "improvedmobs/client.toml");
+        ConfigRegistry.INSTANCE.register(ImprovedMobs.MODID, ModConfig.Type.COMMON, ConfigSpecs.COMMON_SPEC, "improvedmobs/common.toml");
         DifficultyFetcher.register();
 
-        ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(DifficultyAttributeConfig.ID, reg -> new IdentifiableResourceReloadListener() {
-            @Override
-            public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
-                return DifficultyAttributeConfig.create(reg)
-                        .reload(preparationBarrier, resourceManager, preparationsProfiler, reloadProfiler, backgroundExecutor, gameExecutor);
-            }
-
-            @Override
-            public ResourceLocation getFabricId() {
-                return DifficultyAttributeConfig.ID;
-            }
-        });
-        ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(EntityOverridesManager.ID, reg -> new IdentifiableResourceReloadListener() {
-            @Override
-            public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
-                return EntityOverridesManager.create(reg)
-                        .reload(preparationBarrier, resourceManager, preparationsProfiler, reloadProfiler, backgroundExecutor, gameExecutor);
-            }
-
-            @Override
-            public ResourceLocation getFabricId() {
-                return EntityOverridesManager.ID;
-            }
-        });
+        DataResourceLoader.get().registerReloadListener(DifficultyAttributeConfig.ID, DifficultyAttributeConfig::create);
+        DataResourceLoader.get().registerReloadListener(EntityOverridesManager.ID, EntityOverridesManager::create);
         // Defer this so this gets reloaded with lower priority... prob?
-        CommonSetupEvent.EVENT.register(l -> ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(ItemUseLookupManager.ID, reg -> new IdentifiableResourceReloadListener() {
-            @Override
-            public CompletableFuture<Void> reload(PreparationBarrier preparationBarrier, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
-                return ItemUseLookupManager.create(reg).reload(preparationBarrier, resourceManager, preparationsProfiler, reloadProfiler, backgroundExecutor, gameExecutor);
-            }
-
-            @Override
-            public ResourceLocation getFabricId() {
-                return ItemUseLookupManager.ID;
-            }
-        }));
-        if (FabricLoader.getInstance().isModLoaded("playerex"))
-            DifficultyFetcher.add(ImprovedMobs.modRes("player_ex_integration"), new PlayerEXDifficulty());
-        if (FabricLoader.getInstance().isModLoaded("levelz"))
-            DifficultyFetcher.add(ImprovedMobs.modRes("level_z_integration"), new LevelZDifficulty());
+        CommonSetupEvent.EVENT.register(l -> DataResourceLoader.get().registerReloadListener(ItemUseLookupManager.ID, ItemUseLookupManager::create));
     }
 
     public static void registerPacket() {
-        PayloadTypeRegistry.playS2C().register(S2CDiffcultyValue.TYPE, S2CDiffcultyValue.STREAM_CODEC);
-        PayloadTypeRegistry.playS2C().register(S2CShowDifficulty.TYPE, S2CShowDifficulty.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(S2CDiffcultyValue.TYPE, S2CDiffcultyValue.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(S2CShowDifficulty.TYPE, S2CShowDifficulty.STREAM_CODEC);
         if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
             ClientPlayNetworking.registerGlobalReceiver(S2CDiffcultyValue.TYPE, (pkt, ctx) -> S2CDiffcultyValue.handle(pkt));
             ClientPlayNetworking.registerGlobalReceiver(S2CShowDifficulty.TYPE, (pkt, ctx) -> S2CShowDifficulty.handle(pkt));

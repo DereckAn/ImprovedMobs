@@ -1,5 +1,6 @@
 package io.github.flemmli97.improvedmobs.mixin;
 
+import net.minecraft.util.profiling.Profiler;
 import io.github.flemmli97.improvedmobs.mixinhelper.LivingSensingExt;
 import io.github.flemmli97.improvedmobs.mixinhelper.SensingExt;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
@@ -53,10 +54,10 @@ public abstract class EntitySensingMixin implements SensingExt {
         } else if (this.improvedmobs$unseen.contains(i)) {
             return false;
         } else {
-            this.mob.level().getProfiler().push("hasLineOfSight");
+            Profiler.get().push("hasLineOfSight");
             ((LivingSensingExt) this.mob).improvedMobs$doExtendedLOSCheck();
             boolean bl = this.mob.hasLineOfSight(entity);
-            this.mob.level().getProfiler().pop();
+            Profiler.get().pop();
             if (bl) {
                 this.improvedmobs$seen.add(i);
             } else {

@@ -3,7 +3,7 @@ package io.github.flemmli97.improvedmobs.common.config.values;
 import io.github.flemmli97.improvedmobs.api.datapack.EntityOverridesManager;
 import io.github.flemmli97.improvedmobs.common.config.Config;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.BlockTags;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.Mob;
@@ -52,8 +52,8 @@ public class BreakableBlocks {
         if (this.initialized)
             return;
         this.initialized = true;
-        BuiltInRegistries.BLOCK.holders().forEach(block -> {
-            ResourceLocation id = block.key().location();
+        BuiltInRegistries.BLOCK.listElements().forEach(block -> {
+            Identifier id = block.key().identifier();
             boolean contains = this.config.contains(id.toString()) || this.config.contains(id.getNamespace())
                     || block.tags().anyMatch(tag -> this.config.contains("#" + tag.location()));
             if (contains) {

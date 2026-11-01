@@ -1,12 +1,11 @@
 package io.github.flemmli97.improvedmobs.common.entities;
 
-import com.google.common.collect.Iterables;
+import net.minecraft.world.level.storage.ValueOutput;
 import io.github.flemmli97.improvedmobs.common.utils.EntityFlags;
 import net.minecraft.core.Holder;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.damagesource.DamageSource;
@@ -17,7 +16,7 @@ import net.minecraft.world.entity.EntityDimensions;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.SlotAccess;
 import net.minecraft.world.entity.SpawnGroupData;
@@ -26,8 +25,6 @@ import net.minecraft.world.entity.ai.goal.WrappedGoal;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.ServerLevelAccessor;
-import net.minecraft.world.level.storage.loot.BuiltInLootTables;
-import net.minecraft.world.level.storage.loot.LootTable;
 import net.minecraft.world.phys.AABB;
 import org.jetbrains.annotations.Nullable;
 
@@ -42,7 +39,7 @@ public abstract class RiddenSummonEntity extends Mob {
 
     public RiddenSummonEntity(EntityType<? extends Mob> entityType, Level level) {
         super(entityType, level);
-        if (!level.isClientSide) {
+        if (!level.isClientSide()) {
             this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(5);
         }
     }
@@ -57,19 +54,19 @@ public abstract class RiddenSummonEntity extends Mob {
 
     @Nullable
     @Override
-    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType reason, @Nullable SpawnGroupData spawnData) {
+    public SpawnGroupData finalizeSpawn(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason reason, @Nullable SpawnGroupData spawnData) {
         return spawnData;
     }
 
     @Override
-    public boolean hurt(DamageSource source, float amount) {
+    public boolean hurtServer(ServerLevel level, DamageSource source, float amount) {
         if (this.getPassengers().contains(source.getEntity()))
             return false;
-        return super.hurt(source, amount);
+        return super.hurtServer(level, source, amount);
     }
 
     @Override
-    public boolean doHurtTarget(Entity entity) {
+    public boolean doHurtTarget(ServerLevel level, Entity entity) {
         return false;
     }
 
@@ -118,7 +115,7 @@ public abstract class RiddenSummonEntity extends Mob {
 
     @Override
     public SlotAccess getSlot(int slot) {
-        return SlotAccess.NULL;
+        return null;
     }
 
     @Override
@@ -150,14 +147,9 @@ public abstract class RiddenSummonEntity extends Mob {
     }
 
     @Override
-    public Iterable<ItemStack> getAllSlots() {
-        return Iterables.concat();
-    }
-
-    @Override
     public void tick() {
         super.tick();
-        if (!this.level().isClientSide) {
+        if (!this.level().isClientSide()) {
             if (!this.clearedAI) {
                 this.clearedAI = true;
                 this.goalSelector.getAvailableGoals().forEach(WrappedGoal::stop);
@@ -188,18 +180,16 @@ public abstract class RiddenSummonEntity extends Mob {
     }
 
     @Override
-    public CompoundTag saveWithoutId(CompoundTag compound) {
-        CompoundTag tag = super.saveWithoutId(compound);
-        tag.getCompound(EntityFlags.TAG_ID).putString(EntityFlags.SERVER_ENTITY_TAG_ID, this.serverSideID().toString());
-        return tag;
+    public void saveWithoutId(ValueOutput output) {
+        EntityFlags.get(this).serverSideEntityID = this.serverSideID();
+        super.saveWithoutId(output);
     }
 
     @Override
-    protected ResourceKey<LootTable> getDefaultLootTable() {
-        return BuiltInLootTables.EMPTY;
+    protected void dropFromLootTable(ServerLevel level, DamageSource source, boolean playerKilled) {
     }
 
-    public abstract ResourceLocation serverSideID();
+    public abstract Identifier serverSideID();
 
     public boolean doesntCollideWithRidden(Entity rider) {
         return this.level().noCollision(this, riddenAABB(this.getBoundingBox(), rider.getBoundingBox()));

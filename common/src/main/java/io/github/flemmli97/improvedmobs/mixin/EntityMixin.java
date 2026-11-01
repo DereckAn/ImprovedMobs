@@ -4,12 +4,13 @@ import io.github.flemmli97.improvedmobs.common.utils.EntityFlags;
 import io.github.flemmli97.improvedmobs.mixinhelper.EntityData;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Entity.class)
 public abstract class EntityMixin implements EntityData {
@@ -17,14 +18,14 @@ public abstract class EntityMixin implements EntityData {
     @Unique
     private final EntityFlags improvedMobs$flags = new EntityFlags();
 
-    @Inject(method = "load", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;readAdditionalSaveData(Lnet/minecraft/nbt/CompoundTag;)V"))
-    private void readData(CompoundTag compoundTag, CallbackInfo info) {
-        this.improvedMobs$flags.load(compoundTag.getCompound(EntityFlags.TAG_ID));
+    @Inject(method = "load", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;readAdditionalSaveData(Lnet/minecraft/world/level/storage/ValueInput;)V"))
+    private void readData(ValueInput input, CallbackInfo info) {
+        input.read(EntityFlags.TAG_ID, CompoundTag.CODEC).ifPresent(this.improvedMobs$flags::load);
     }
 
-    @Inject(method = "saveWithoutId", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;addAdditionalSaveData(Lnet/minecraft/nbt/CompoundTag;)V"))
-    private void saveData(CompoundTag compoundTag, CallbackInfoReturnable<CompoundTag> info) {
-        compoundTag.put(EntityFlags.TAG_ID, this.improvedMobs$flags.save());
+    @Inject(method = "saveWithoutId", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Entity;addAdditionalSaveData(Lnet/minecraft/world/level/storage/ValueOutput;)V"))
+    private void saveData(ValueOutput output, CallbackInfo info) {
+        output.store(EntityFlags.TAG_ID, CompoundTag.CODEC, this.improvedMobs$flags.save());
     }
 
     @Override

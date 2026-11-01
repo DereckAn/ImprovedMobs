@@ -64,7 +64,7 @@ public class WeightedItemStackList {
     @TestOnly
     public JsonElement asProbability(DynamicOps<JsonElement> ops) {
         JsonArray array = new JsonArray();
-        float modifier = 250;
+        float modifier = 500;
         float totalWeight = this.getTotalWeight(modifier);
         for (WeightedItemStack.UnresolvedWeightedStack entry : this.values) {
             array.add(WeightedItemStack.UnresolvedWeightedStack.CODEC.encodeStart(ops, entry.withWeight(totalWeight != 0 ? entry.getWeight(modifier) / totalWeight : 0)).getOrThrow());

@@ -2,10 +2,9 @@ package io.github.flemmli97.improvedmobs.api.difficulty;
 
 import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import io.github.flemmli97.improvedmobs.api.difficulty.impl.DefaultDifficulty;
-import io.github.flemmli97.improvedmobs.api.difficulty.impl.RunecraftoryDifficulty;
 import io.github.flemmli97.improvedmobs.api.difficulty.impl.VanillaDifficulty;
 import io.github.flemmli97.tenshilib.loader.TenshiLibCrossPlat;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.NotNull;
@@ -18,22 +17,20 @@ import java.util.Map;
 
 public class DifficultyFetcher {
 
-    private static final ResourceLocation DEFAULT = ImprovedMobs.modRes("default");
+    private static final Identifier DEFAULT = ImprovedMobs.modRes("default");
     private static final List<OrderedResource> ORDERED_RESOURCES = new ArrayList<>();
-    private static final Map<ResourceLocation, DifficultyGetter> DIFFICULTIES = new HashMap<>();
+    private static final Map<Identifier, DifficultyGetter> DIFFICULTIES = new HashMap<>();
 
     public static void register() {
         add(DEFAULT, -1, new DefaultDifficulty());
-        add(ResourceLocation.fromNamespaceAndPath("minecraft", "clamped_difficulty"), new VanillaDifficulty());
-        if (TenshiLibCrossPlat.INSTANCE.isModLoaded("runecraftory"))
-            add(ResourceLocation.fromNamespaceAndPath(ImprovedMobs.MODID, "runecraftory_integration"), new RunecraftoryDifficulty());
+        add(Identifier.fromNamespaceAndPath("minecraft", "clamped_difficulty"), new VanillaDifficulty());
     }
 
-    public static synchronized void add(ResourceLocation id, DifficultyGetter impl) {
+    public static synchronized void add(Identifier id, DifficultyGetter impl) {
         add(id, ORDERED_RESOURCES.size(), impl);
     }
 
-    public static synchronized void add(ResourceLocation id, int order, DifficultyGetter impl) {
+    public static synchronized void add(Identifier id, int order, DifficultyGetter impl) {
         ORDERED_RESOURCES.add(new OrderedResource(order, id));
         ORDERED_RESOURCES.sort(Collections.reverseOrder());
         DIFFICULTIES.put(id, impl);
@@ -74,7 +71,7 @@ public class DifficultyFetcher {
         return difficulty + toAdd;
     }
 
-    record OrderedResource(int order, ResourceLocation res) implements Comparable<OrderedResource> {
+    record OrderedResource(int order, Identifier res) implements Comparable<OrderedResource> {
 
         @Override
         public int compareTo(@NotNull DifficultyFetcher.OrderedResource o) {

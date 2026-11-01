@@ -3,7 +3,7 @@ package io.github.flemmli97.improvedmobs.fabric.events;
 import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import io.github.flemmli97.improvedmobs.common.events.EventCalls;
 import net.fabricmc.fabric.api.networking.v1.PacketSender;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -22,7 +22,7 @@ import java.util.List;
 
 public class EventHandler {
 
-    public static final ResourceLocation tileCap = ImprovedMobs.modRes("opened_flag");
+    public static final Identifier tileCap = ImprovedMobs.modRes("opened_flag");
 
     public static void worldJoin(ServerGamePacketListenerImpl handler, PacketSender sender, MinecraftServer server) {
         EventCalls.levelJoin(handler.player, server);

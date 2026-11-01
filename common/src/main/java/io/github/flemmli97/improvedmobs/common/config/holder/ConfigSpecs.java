@@ -94,6 +94,7 @@ public class ConfigSpecs {
         public final ModConfigSpec.ConfigValue<String> stealerChance;
         public final ModConfigSpec.DoubleValue difficultySteal;
         public final ModConfigSpec.ConfigValue<String> neutralAggressiv;
+        public final ModConfigSpec.ConfigValue<String> nightSpawnMultiplier;
         public final ModConfigSpec.ConfigValue<String> guardianAIChance;
         public final ModConfigSpec.ConfigValue<String> flyAIChance;
         public final ModConfigSpec.BooleanValue tntBlockDestruction;
@@ -119,7 +120,7 @@ public class ConfigSpecs {
         public final ModConfigSpec.BooleanValue enchantWhitelist;
 
         public CommonConfigVals(ModConfigSpec.Builder builder) {
-            builder.comment("General settings", "By default the difficulty caps at 250").push("general");
+            builder.comment("General settings", "By default the difficulty caps at 500").push("general");
             this.enableDifficultyScaling = builder.comment("Enables increasing the difficulty over time").define("Enable difficulty scaling", Config.CommonConfig.enableDifficultyScaling);
             this.difficultyDelay = builder.comment("Time in ticks for which the difficulty shouldn't increase at the beginning. One full minecraft day is 24000 ticks").defineInRange("Difficulty Delay", Config.CommonConfig.difficultyDelay, 0, Integer.MAX_VALUE);
             this.ignoreSpawner = builder.comment("Whether mobs from spawners should be ignored").define("Ignore Spawner", Config.CommonConfig.ignoreSpawner);
@@ -203,6 +204,7 @@ public class ConfigSpecs {
             this.breakingItems = builder.comment("Items which will be given to mobs who can break blocks. Empty list = no items. Syntax: id;weight", "Note: Mobs can only break blocks if the tool they are holding can break the blocks").define("Breaking items", Lists.newArrayList("minecraft:diamond_pickaxe;1", "minecraft:iron_axe;2"), stringList());
             this.breakBlockEntities = builder.comment("Should mobs be able to break block entities? Evaluated before the break list").define("Break BlockEntities", Config.CommonConfig.breakBlockEntities);
             this.neutralAggressiv = builder.comment("(Expression): Chance for neutral mobs to be aggressive").define("Neutral Aggressive Chance", Config.CommonConfig.neutralAggressiv.write());
+            this.nightSpawnMultiplier = builder.comment("(Expression): Multiplier for the hostile mob spawn cap at night. Uses the highest player difficulty in the dimension. 1 = vanilla").define("Night Monster Cap Multiplier", Config.CommonConfig.nightSpawnMultiplier.write());
             this.guardianAIChance = builder.comment("(Expression): Chance for mobs to be able to summon an aquatic mount").define("Guardian Chance", Config.CommonConfig.guardianAIChance.write());
             this.flyAIChance = builder.comment("(Expression): Chance for mobs to be able to summon a flying mount").define("Flying Chance", Config.CommonConfig.flyAIChance.write());
             this.tntBlockDestruction = builder.comment("Set this to true to allow tnt thrown by mobs to destroy blocks").define("TNT Block Destruction", Config.CommonConfig.tntBlockDestruction);

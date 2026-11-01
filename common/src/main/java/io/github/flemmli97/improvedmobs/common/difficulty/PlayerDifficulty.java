@@ -49,9 +49,9 @@ public class PlayerDifficulty implements SerializableAttachment<CompoundTag, Pla
 
     @Override
     public PlayerDifficulty read(CompoundTag tag, HolderLookup.Provider provider) {
-        this.difficultyLevel = tag.contains("IMDifficulty") ? tag.getDouble("IMDifficulty") : tag.getDouble("Difficulty");
-        this.difficultyIndex = tag.getInt("DifficultyIndex");
-        this.paused = tag.getBoolean("Paused");
+        this.difficultyLevel = tag.contains("IMDifficulty") ? tag.getDoubleOr("IMDifficulty", 0) : tag.getDoubleOr("Difficulty", 0);
+        this.difficultyIndex = tag.getIntOr("DifficultyIndex", 0);
+        this.paused = tag.getBooleanOr("Paused", false);
         return this;
     }
 

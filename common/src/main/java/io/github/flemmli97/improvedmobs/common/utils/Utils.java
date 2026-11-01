@@ -1,5 +1,6 @@
 package io.github.flemmli97.improvedmobs.common.utils;
 
+import net.minecraft.server.level.ServerLevel;
 import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import io.github.flemmli97.improvedmobs.common.config.Config;
 import io.github.flemmli97.improvedmobs.common.config.equipment.EquipmentList;
@@ -11,7 +12,7 @@ import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.FluidTags;
 import net.minecraft.world.effect.MobEffectUtil;
 import net.minecraft.world.effect.MobEffects;
@@ -22,11 +23,11 @@ import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.piglin.AbstractPiglin;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.armortrim.ArmorTrim;
-import net.minecraft.world.item.armortrim.TrimMaterial;
-import net.minecraft.world.item.armortrim.TrimPattern;
+import net.minecraft.world.item.equipment.trim.ArmorTrim;
+import net.minecraft.world.item.equipment.trim.TrimMaterial;
+import net.minecraft.world.item.equipment.trim.TrimPattern;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
@@ -36,13 +37,13 @@ import java.util.function.Function;
 
 public class Utils {
 
-    public static final Function<Entity, ResourceLocation> ENTITY_ID = e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType());
-    public static final ResourceLocation ATTRIBUTE_ID = ImprovedMobs.modRes("attribute_modifiers");
+    public static final Function<Entity, Identifier> ENTITY_ID = e -> BuiltInRegistries.ENTITY_TYPE.getKey(e.getType());
+    public static final Identifier ATTRIBUTE_ID = ImprovedMobs.modRes("attribute_modifiers");
 
-    public static <T> boolean isInList(T entry, List<? extends String> list, boolean reverse, Function<T, ResourceLocation> mapper) {
+    public static <T> boolean isInList(T entry, List<? extends String> list, boolean reverse, Function<T, Identifier> mapper) {
         if (reverse)
             return !isInList(entry, list, false, mapper);
-        ResourceLocation res = mapper.apply(entry);
+        Identifier res = mapper.apply(entry);
         return list.contains(res.getPath()) || list.contains(res.toString());
     }
 
@@ -50,7 +51,7 @@ public class Utils {
         if (mob.getTarget() == null && !Config.CommonConfig.idleBreak)
             return false;
         return EntityFlags.get(mob).canBreakBlocks == EntityFlags.FlagType.TRUE
-                && mob.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);
+                && mob.level() instanceof ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.MOB_GRIEFING);
     }
 
     public static boolean canClimb(Mob mob) {
@@ -76,9 +77,9 @@ public class Utils {
                 if (shouldAdd && living.getItemBySlot(slot).isEmpty()) {
                     ItemStack equip = EquipmentList.getEquipment(living, slot, difficulty);
                     if (living.getRandom().nextFloat() < Config.CommonConfig.randomTrimChance.get(map)) {
-                        RegistryAccess registryAccess = living.getServer().registryAccess();
-                        Optional<Holder.Reference<TrimMaterial>> trim = registryAccess.registry(Registries.TRIM_MATERIAL).flatMap(r -> r.getRandom(living.getRandom()));
-                        Optional<Holder.Reference<TrimPattern>> pattern = living.getServer().registryAccess().registry(Registries.TRIM_PATTERN).flatMap(r -> r.getRandom(living.getRandom()));
+                        RegistryAccess registryAccess = living.registryAccess();
+                        Optional<Holder.Reference<TrimMaterial>> trim = registryAccess.lookup(Registries.TRIM_MATERIAL).flatMap(r -> r.getRandom(living.getRandom()));
+                        Optional<Holder.Reference<TrimPattern>> pattern = living.registryAccess().lookup(Registries.TRIM_PATTERN).flatMap(r -> r.getRandom(living.getRandom()));
                         if (trim.isPresent() && pattern.isPresent()) {
                             equip.set(DataComponents.TRIM, new ArmorTrim(trim.get(), pattern.get()));
                         }
@@ -124,8 +125,8 @@ public class Utils {
             if (!itemstack.isEmpty() && living.getRandom().nextFloat() < Config.CommonConfig.enchantChance.get(map)) {
                 RegistryAccess registryAccess = living.registryAccess();
                 EnchantmentHelper.enchantItem(living.getRandom(), itemstack, level,
-                        registryAccess.registryOrThrow(Registries.ENCHANTMENT).holders().filter(r ->
-                                        Config.CommonConfig.enchantWhitelist == Config.CommonConfig.enchantBlacklist.contains(r.key().location().toString()))
+                        registryAccess.lookupOrThrow(Registries.ENCHANTMENT).listElements().filter(r ->
+                                        Config.CommonConfig.enchantWhitelist == Config.CommonConfig.enchantBlacklist.contains(r.key().identifier().toString()))
                                 .map(r -> r));
             }
         }
@@ -160,8 +161,8 @@ public class Utils {
         }
         if (MobEffectUtil.hasDigSpeed(entity))
             f *= 1.0F + (MobEffectUtil.getDigSpeedAmplification(entity) + 1) * 0.2F;
-        if (entity.hasEffect(MobEffects.DIG_SLOWDOWN)) {
-            switch (entity.getEffect(MobEffects.DIG_SLOWDOWN).getAmplifier()) {
+        if (entity.hasEffect(MobEffects.MINING_FATIGUE)) {
+            switch (entity.getEffect(MobEffects.MINING_FATIGUE).getAmplifier()) {
                 case 0 -> f *= 0.3F;
                 case 1 -> f *= 0.09F;
                 case 2 -> f *= 0.0027F;

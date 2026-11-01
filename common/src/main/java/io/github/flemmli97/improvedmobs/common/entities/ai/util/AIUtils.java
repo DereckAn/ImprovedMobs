@@ -6,7 +6,8 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.entity.projectile.ThrownPotion;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.AbstractThrownPotion;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.jetbrains.annotations.Nullable;
@@ -22,7 +23,7 @@ public class AIUtils {
         projectile.shoot(dir.x, dir.y, dir.z, velocity, inaccuracy);
     }
 
-    public static void applyPotion(ThrownPotion entity, Iterable<MobEffectInstance> effects, @Nullable Entity p_213888_2_) {
+    public static void applyPotion(ServerLevel level, AbstractThrownPotion entity, Iterable<MobEffectInstance> effects, @Nullable Entity p_213888_2_) {
         AABB axisalignedbb = entity.getBoundingBox().inflate(4.0D, 2.0D, 4.0D);
         List<LivingEntity> list = entity.level().getEntitiesOfClass(LivingEntity.class, axisalignedbb);
         for (LivingEntity livingentity : list) {
@@ -38,8 +39,8 @@ public class AIUtils {
 
                     for (MobEffectInstance effectinstance : effects) {
                         MobEffect effect = effectinstance.getEffect().value();
-                        if (effect.isInstantenous()) {
-                            effect.applyInstantenousEffect(entity, entity.getOwner(), livingentity, effectinstance.getAmplifier(), d1);
+                        if (effect.isInstantaneous()) {
+                            effect.applyInstantaneousEffect(level, entity, entity.getOwner(), livingentity, effectinstance.getAmplifier(), d1);
                         } else {
                             int i = (int) (d1 * (double) effectinstance.getDuration() + 0.5D);
                             if (i > 20) {

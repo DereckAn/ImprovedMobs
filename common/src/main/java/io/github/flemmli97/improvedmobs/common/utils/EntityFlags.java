@@ -3,7 +3,7 @@ package io.github.flemmli97.improvedmobs.common.utils;
 import io.github.flemmli97.improvedmobs.common.entities.RiddenSummonEntity;
 import io.github.flemmli97.improvedmobs.mixinhelper.EntityData;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 
 import java.util.HashMap;
@@ -36,7 +36,7 @@ public class EntityFlags {
 
     private final Map<ServerSideAttributes, Double> attributes = new HashMap<>();
 
-    public ResourceLocation serverSideEntityID;
+    public Identifier serverSideEntityID;
 
     public void disableShield() {
         this.shieldCooldown = 120;
@@ -66,22 +66,24 @@ public class EntityFlags {
         CompoundTag attributes = new CompoundTag();
         this.attributes.forEach((att, val) -> attributes.putDouble(att.name(), val));
         tag.put("Attributes", attributes);
+        if (this.serverSideEntityID != null)
+            tag.putString(SERVER_ENTITY_TAG_ID, this.serverSideEntityID.toString());
         return tag;
     }
 
     public void load(CompoundTag nbt) {
-        this.canBreakBlocks = FlagType.values()[nbt.getInt("CanBreakBlocks")];
-        this.canFly = FlagType.values()[nbt.getInt("CanFly")];
-        this.modifyArmor = nbt.getBoolean("ModifiedArmor");
-        this.modifyHeldItems = nbt.getBoolean("ModifiedHeld");
-        this.modifyAttributes = nbt.getBoolean("ModifiedAttributes");
-        this.enchantGear = nbt.getBoolean("GearEnchanted");
-        this.isThrownEntity = nbt.getBoolean("IsThrown");
+        this.canBreakBlocks = FlagType.values()[nbt.getIntOr("CanBreakBlocks", 0)];
+        this.canFly = FlagType.values()[nbt.getIntOr("CanFly", 0)];
+        this.modifyArmor = nbt.getBooleanOr("ModifiedArmor", false);
+        this.modifyHeldItems = nbt.getBooleanOr("ModifiedHeld", false);
+        this.modifyAttributes = nbt.getBooleanOr("ModifiedAttributes", false);
+        this.enchantGear = nbt.getBooleanOr("GearEnchanted", false);
+        this.isThrownEntity = nbt.getBooleanOr("IsThrown", false);
         this.attributes.clear();
-        CompoundTag attributes = nbt.getCompound("Attributes");
-        attributes.getAllKeys().forEach(key -> this.attributes.put(ServerSideAttributes.valueOf(key), attributes.getDouble(key)));
+        CompoundTag attributes = nbt.getCompoundOrEmpty("Attributes");
+        attributes.keySet().forEach(key -> this.attributes.put(ServerSideAttributes.valueOf(key), attributes.getDoubleOr(key, 0)));
         if (nbt.contains(SERVER_ENTITY_TAG_ID))
-            this.serverSideEntityID = ResourceLocation.parse(nbt.getString(SERVER_ENTITY_TAG_ID));
+            this.serverSideEntityID = Identifier.parse(nbt.getStringOr(SERVER_ENTITY_TAG_ID, ""));
     }
 
     public enum FlagType {

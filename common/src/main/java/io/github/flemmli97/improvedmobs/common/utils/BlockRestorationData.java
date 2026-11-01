@@ -22,7 +22,10 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
+import com.mojang.serialization.Codec;
+import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -30,8 +33,9 @@ import java.util.List;
 
 public class BlockRestorationData extends SavedData {
 
-    private static final String ID = "ImprovedMobsRestoration";
-    private static final SavedData.Factory<BlockRestorationData> FACTORY = new Factory<>(BlockRestorationData::new, BlockRestorationData::new, DataFixTypes.LEVEL);
+    // ponytail: wraps the old NBT load/save in a codec. Save files from 1.21.1 used a different name and are not migrated
+    private static final Codec<BlockRestorationData> CODEC = CompoundTag.CODEC.xmap(tag -> new BlockRestorationData(tag, null), data -> data.save(new CompoundTag(), null));
+    private static final SavedDataType<BlockRestorationData> TYPE = new SavedDataType<>(ImprovedMobs.modRes("restoration"), BlockRestorationData::new, CODEC, DataFixTypes.LEVEL);
 
     private final Long2ObjectMap<Long2ObjectMap<SavedBlock>> toRestore = new Long2ObjectOpenHashMap<>();
 
@@ -43,11 +47,11 @@ public class BlockRestorationData extends SavedData {
     }
 
     public static BlockRestorationData get(ServerLevel level) {
-        return level.getDataStorage().computeIfAbsent(FACTORY, ID);
+        return level.getDataStorage().computeIfAbsent(TYPE);
     }
 
     public void restore(ServerLevel level, BlockState state, BlockPos pos, @Nullable Entity entity) {
-        Long2ObjectMap<SavedBlock> chunk = this.toRestore.computeIfAbsent(ChunkPos.asLong(pos), o -> new Long2ObjectOpenHashMap<>());
+        Long2ObjectMap<SavedBlock> chunk = this.toRestore.computeIfAbsent(ChunkPos.pack(pos), o -> new Long2ObjectOpenHashMap<>());
         SavedBlock current = chunk.get(pos.asLong());
         if (current != null) {
             current.toDrop.forEach(stack -> Block.popResource(level, pos, stack));
@@ -63,27 +67,27 @@ public class BlockRestorationData extends SavedData {
         long time = level.getGameTime();
         boolean particle = time % 5 == 0;
         this.toRestore.forEach((chunk, data) -> {
-            ChunkPos chunkPos = new ChunkPos(chunk);
-            if (level.hasChunk(chunkPos.x, chunkPos.z)) {
+            ChunkPos chunkPos = ChunkPos.unpack(chunk);
+            if (level.hasChunk(chunkPos.x(), chunkPos.z())) {
                 LongSet toRemoveBlocks = new LongArraySet();
-                LevelChunk levelChunk = level.getChunk(chunkPos.x, chunkPos.z);
+                LevelChunk levelChunk = level.getChunk(chunkPos.x(), chunkPos.z());
                 data.forEach((packedPos, replace) -> {
                     BlockPos pos = BlockPos.of(packedPos);
                     BlockState current = levelChunk.getBlockState(pos);
                     if (current.getBlock() == Blocks.AIR) {
                         if (Math.abs(time - replace.time) > Config.CommonConfig.restoreDelay) {
                             level.setBlock(pos, replace.state, Block.UPDATE_ALL);
-                            toRemoveBlocks.add(packedPos.longValue());
+                            toRemoveBlocks.add(packedPos);
                         } else if (particle)
                             level.sendParticles(DustParticleOptions.REDSTONE, pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 0, 0, 0, 0, 0);
                     } else {
                         replace.toDrop.forEach(stack -> Block.popResource(level, pos, stack));
-                        toRemoveBlocks.add(packedPos.longValue());
+                        toRemoveBlocks.add(packedPos);
                     }
                 });
                 toRemoveBlocks.forEach(data::remove);
                 if (data.isEmpty())
-                    toRemove.add(chunk.longValue());
+                    toRemove.add(chunk);
                 if (!toRemoveBlocks.isEmpty())
                     this.setDirty();
             }
@@ -92,22 +96,21 @@ public class BlockRestorationData extends SavedData {
     }
 
     public void load(CompoundTag data) {
-        data.getAllKeys().forEach((chunk) -> {
+        data.keySet().forEach((chunk) -> {
             Long2ObjectMap<SavedBlock> blocksMap = new Long2ObjectOpenHashMap<>();
-            ListTag blocks = data.getList(chunk, Tag.TAG_COMPOUND);
+            ListTag blocks = data.getListOrEmpty(chunk);
             blocks.forEach(t -> {
                 CompoundTag blockSave = (CompoundTag) t;
                 List<ItemStack> stacks = new ArrayList<>();
-                blockSave.getList("Drops", Tag.TAG_COMPOUND)
+                blockSave.getListOrEmpty("Drops")
                         .forEach(st -> stacks.add(ItemStack.CODEC.parse(NbtOps.INSTANCE, st).getOrThrow()));
-                blocksMap.put(blockSave.getLong("Pos"),
-                        new SavedBlock(BlockState.CODEC.parse(NbtOps.INSTANCE, blockSave.get("State")).getOrThrow(), blockSave.getLong("Time"), stacks));
+                blocksMap.put(blockSave.getLongOr("Pos", 0L),
+                        new SavedBlock(BlockState.CODEC.parse(NbtOps.INSTANCE, blockSave.get("State")).getOrThrow(), blockSave.getLongOr("Time", 0L), stacks));
             });
             this.toRestore.put(Long.parseLong(chunk), blocksMap);
         });
     }
 
-    @Override
     public CompoundTag save(CompoundTag data, HolderLookup.Provider provider) {
         this.toRestore.forEach((chunk, blocks) -> {
             ListTag list = new ListTag();

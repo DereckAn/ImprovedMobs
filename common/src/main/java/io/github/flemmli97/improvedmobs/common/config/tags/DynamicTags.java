@@ -5,12 +5,8 @@ import io.github.flemmli97.tenshilib.loader.event.TagModifyEvent;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.NeutralMob;
-import net.minecraft.world.entity.animal.Animal;
-import net.minecraft.world.entity.monster.Enemy;
+import net.minecraft.world.entity.MobCategory;
 
 public class DynamicTags {
 
@@ -19,28 +15,23 @@ public class DynamicTags {
     public static TagKey<EntityType<?>> NEUTRAL_MOBS = TagKey.create(Registries.ENTITY_TYPE, ImprovedMobs.modRes("neutral_mobs"));
     public static TagKey<EntityType<?>> ANIMAL_MOBS = TagKey.create(Registries.ENTITY_TYPE, ImprovedMobs.modRes("animal_mobs"));
 
+    /**
+     * Since 26.1 entity type tags load before the dynamic registries exist, so entities can no longer be
+     * instantiated here to inspect their class. Classify by spawn category instead.
+     * ponytail: NEUTRAL_MOBS can't be derived from the category and is left for datapacks to fill.
+     */
     public static void init() {
-        TagModifyEvent.INSTANCE.registerListener(Registries.ENTITY_TYPE, handler -> {
-            DummyLevel level = new DummyLevel(handler.registryAccess());
-            BuiltInRegistries.ENTITY_TYPE.holders().forEach(type -> {
-                try {
-                    Entity entity = type.value().create(level);
-                    if (entity instanceof Mob && entity instanceof Enemy) {
+        TagModifyEvent.INSTANCE.registerListener(Registries.ENTITY_TYPE, handler ->
+                BuiltInRegistries.ENTITY_TYPE.listElements().forEach(type -> {
+                    MobCategory category = type.value().getCategory();
+                    if (category == MobCategory.MONSTER) {
                         handler.add(HOSTILE_MOBS, type);
-                    }
-                    if (entity instanceof Mob && !(entity instanceof Enemy)) {
+                    } else {
                         handler.add(NON_HOSTILE_MOBS, type);
                     }
-                    if (entity instanceof NeutralMob) {
-                        handler.add(NEUTRAL_MOBS, type);
-                    }
-                    if (entity instanceof Animal) {
+                    if (category == MobCategory.CREATURE || category == MobCategory.AXOLOTLS) {
                         handler.add(ANIMAL_MOBS, type);
                     }
-                } catch (Exception e) {
-                    ImprovedMobs.LOGGER.error("Error during default entity config for EntityType {}, skipping this type. Cause: {}", type.key(), e.getMessage());
-                }
-            });
-        });
+                }));
     }
 }

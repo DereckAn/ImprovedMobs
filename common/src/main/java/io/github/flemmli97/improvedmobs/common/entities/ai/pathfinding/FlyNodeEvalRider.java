@@ -1,5 +1,6 @@
 package io.github.flemmli97.improvedmobs.common.entities.ai.pathfinding;
 
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.EntityAttachment;
 import net.minecraft.world.entity.EntityType;
@@ -20,7 +21,7 @@ public class FlyNodeEvalRider extends FlyNodeEvaluator {
     }
 
     private double getPassengerHeightOffset() {
-        Vec3 offset = EntityType.PHANTOM.getDimensions().attachments().getClamped(EntityAttachment.PASSENGER, 0, 0);
+        Vec3 offset = EntityTypes.PHANTOM.getDimensions().attachments().getClamped(EntityAttachment.PASSENGER, 0, 0);
         return offset.y();
     }
 }

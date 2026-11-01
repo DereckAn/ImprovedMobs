@@ -1,5 +1,7 @@
 package io.github.flemmli97.improvedmobs.api.datapack;
 
+import net.minecraft.resources.FileToIdConverter;
+import net.minecraft.util.ExtraCodecs;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.gson.JsonElement;
@@ -12,7 +14,7 @@ import io.github.flemmli97.improvedmobs.common.datapack.SingleFileResources;
 import io.github.flemmli97.tenshilib.common.utils.math.parser.VariableMap;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -26,9 +28,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class EntityOverridesManager extends SimpleJsonResourceReloadListener {
+public class EntityOverridesManager extends SimpleJsonResourceReloadListener<JsonElement> {
 
-    public static final ResourceLocation ID = ImprovedMobs.modRes("entity_configs");
+    public static final Identifier ID = ImprovedMobs.modRes("entity_configs");
     public static final String DIRECTORY = String.format("%s/%s", ID.getNamespace(), ID.getPath());
 
     private static EntityOverridesManager INSTANCE;
@@ -40,7 +42,7 @@ public class EntityOverridesManager extends SimpleJsonResourceReloadListener {
     private Map<EntityType<?>, EntityConfigProperties> properties = ImmutableMap.of();
 
     private EntityOverridesManager(HolderLookup.Provider provider) {
-        super(SingleFileResources.GSON, DIRECTORY);
+        super(ExtraCodecs.JSON, FileToIdConverter.json(DIRECTORY));
         this.provider = provider;
     }
 
@@ -80,7 +82,7 @@ public class EntityOverridesManager extends SimpleJsonResourceReloadListener {
         EntityConfigProperties properties = this.properties.get(entity.getType());
         if (properties == null)
             return OverrideState.DEFAULT;
-        if (properties.breakableBlocks().val().contains(state.getBlockHolder()))
+        if (properties.breakableBlocks().val().contains(state.typeHolder()))
             return OverrideState.ALLOW;
         return properties.breakableBlocks().replace() ? OverrideState.DENY : OverrideState.DEFAULT;
     }
@@ -91,7 +93,7 @@ public class EntityOverridesManager extends SimpleJsonResourceReloadListener {
             Map<EntityType<?>, EntityConfigProperties> direct = new HashMap<>();
             Map<EntityType<?>, EntityConfigProperties> tags = new HashMap<>();
             Map<EntityType<?>, EntityConfigProperties> namespace = new HashMap<>();
-            BuiltInRegistries.ENTITY_TYPE.holders().forEach(type -> {
+            BuiltInRegistries.ENTITY_TYPE.listElements().forEach(type -> {
                 this.unresolved.forEach(props -> {
                     if (props.type().isDirect(type))
                         direct.put(type.value(), props);
@@ -114,11 +116,11 @@ public class EntityOverridesManager extends SimpleJsonResourceReloadListener {
     }
 
     @Override
-    protected void apply(Map<ResourceLocation, JsonElement> data, ResourceManager manager, ProfilerFiller profiler) {
+    protected void apply(Map<Identifier, JsonElement> data, ResourceManager manager, ProfilerFiller profiler) {
         this.resolved = false;
         ImmutableSet.Builder<EntityConfigProperties> builder = ImmutableSet.builder();
         DynamicOps<JsonElement> ops = this.provider.createSerializationContext(JsonOps.INSTANCE);
-        Set<ResourceLocation> overrides = new HashSet<>();
+        Set<Identifier> overrides = new HashSet<>();
         data.forEach((res, element) -> {
             try {
                 builder.add(EntityConfigProperties.CODEC.parse(ops, element).getOrThrow());

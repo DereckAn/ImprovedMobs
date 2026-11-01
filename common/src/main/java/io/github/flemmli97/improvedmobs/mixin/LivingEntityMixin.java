@@ -15,7 +15,7 @@ public abstract class LivingEntityMixin implements LivingSensingExt {
     @Unique
     private boolean improvedMobs$extended_los;
 
-    @ModifyArg(method = "hasLineOfSight", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;clip(Lnet/minecraft/world/level/ClipContext;)Lnet/minecraft/world/phys/BlockHitResult;"))
+    @ModifyArg(method = "hasLineOfSight(Lnet/minecraft/world/entity/Entity;Lnet/minecraft/world/level/ClipContext$Block;Lnet/minecraft/world/level/ClipContext$Fluid;D)Z", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/level/Level;clip(Lnet/minecraft/world/level/ClipContext;)Lnet/minecraft/world/phys/BlockHitResult;"))
     private ClipContext test(ClipContext old) {
         if (this.improvedMobs$extended_los) {
             ((SeeThroughContext) old).improvedMobs$checkSeeThrough();

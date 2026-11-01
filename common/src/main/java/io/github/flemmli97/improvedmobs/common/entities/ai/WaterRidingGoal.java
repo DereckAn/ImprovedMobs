@@ -33,7 +33,7 @@ public class WaterRidingGoal extends Goal {
             return true;
         }
         LivingEntity target = this.living.getTarget();
-        if (target == null || !target.isAlive() || !this.living.isWithinRestriction(target.blockPosition()) || this.isAquatic())
+        if (target == null || !target.isAlive() || !this.living.isWithinHome(target.blockPosition()) || this.isAquatic())
             return false;
         if (this.living.isInWater() && !this.living.isPassenger()) {
             if (this.wait == 80) {
@@ -46,7 +46,7 @@ public class WaterRidingGoal extends Goal {
     }
 
     private boolean isAquatic() {
-        return this.living.getType().is(EntityTypeTags.AQUATIC) || this.living.getType().is(EntityTypeTags.CAN_BREATHE_UNDER_WATER)
+        return this.living.is(EntityTypeTags.AQUATIC) || this.living.is(EntityTypeTags.CAN_BREATHE_UNDER_WATER)
                 || this.living.getNavigation() instanceof WaterBoundPathNavigation || this.living.getNavigation() instanceof WaterNavigation
                 || this.living.getNavigation() instanceof AmphibiousPathNavigation;
     }
@@ -81,7 +81,7 @@ public class WaterRidingGoal extends Goal {
             if (!this.living.isPassenger()) {
                 AquaticSummonEntity summon = new AquaticSummonEntity(this.living.level());
                 BlockPos pos = this.living.blockPosition();
-                summon.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, this.living.getYRot(), this.living.getXRot());
+                summon.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, this.living.getYRot(), this.living.getXRot());
                 if (this.living.level().noCollision(summon)) {
                     this.living.level().addFreshEntity(summon);
                     summon.scheduledRide(this.living);
@@ -104,7 +104,7 @@ public class WaterRidingGoal extends Goal {
             entity.setDeltaMovement(new Vec3(facing.x, entity.getDeltaMovement().y, facing.z));
         }
         if (this.isOnLand(entity)) {
-            this.living.addEffect(new MobEffectInstance(MobEffects.DAMAGE_RESISTANCE, 2, 5, false, false));
+            this.living.addEffect(new MobEffectInstance(MobEffects.RESISTANCE, 2, 5, false, false));
             this.living.getNavigation().stop();
             mount.scheduledDismount();
         }
@@ -121,7 +121,7 @@ public class WaterRidingGoal extends Goal {
         if (cliffSize < 3) {
             BlockPos pos = riding.blockPosition().relative(riding.getDirection()).above(cliffSize);
             BlockState state = riding.level().getBlockState(pos);
-            if (state.blocksMotion() && !riding.level().getBlockState(pos.above()).blocksMotion())
+            if (state.isSolid() && !riding.level().getBlockState(pos.above()).isSolid())
                 return true;
             else
                 return this.nearShore(riding, cliffSize + 1);

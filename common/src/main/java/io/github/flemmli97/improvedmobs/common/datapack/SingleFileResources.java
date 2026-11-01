@@ -7,7 +7,7 @@ import com.google.gson.JsonParseException;
 import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.resources.FileToIdConverter;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
 import net.minecraft.util.GsonHelper;
@@ -21,12 +21,12 @@ public abstract class SingleFileResources extends SimplePreparableReloadListener
     public static final String CONFIG_DIRECTORY = "improvedmobs/config";
     public static final Gson GSON = new Gson();
 
-    public final ResourceLocation id;
-    public final ResourceLocation file;
+    public final Identifier id;
+    public final Identifier file;
 
     protected final HolderLookup.Provider provider;
 
-    public SingleFileResources(ResourceLocation id, HolderLookup.Provider provider) {
+    public SingleFileResources(Identifier id, HolderLookup.Provider provider) {
         this.id = id;
         this.file = FileToIdConverter.json(CONFIG_DIRECTORY).idToFile(id);
         this.provider = provider;

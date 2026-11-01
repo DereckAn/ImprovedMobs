@@ -3,7 +3,7 @@ package io.github.flemmli97.improvedmobs.common.config.values;
 import com.mojang.datafixers.util.Pair;
 import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.BowItem;
@@ -48,7 +48,7 @@ public class EntityItemConfig {
                 ImprovedMobs.LOGGER.error("Invalid entity item config value for {}", value);
                 continue;
             }
-            BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(sub[0]))
+            BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(sub[0]))
                     .ifPresent(type -> map.computeIfAbsent(type, key -> new ArrayList<>()).add(sub[1]));
         }
         this.itemBlacklist.clear();

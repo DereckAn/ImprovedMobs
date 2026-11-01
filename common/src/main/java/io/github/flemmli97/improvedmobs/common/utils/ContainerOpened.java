@@ -21,7 +21,7 @@ public class ContainerOpened implements SerializableAttachment<CompoundTag, Cont
 
     @Override
     public ContainerOpened read(CompoundTag tag, HolderLookup.Provider provider) {
-        this.opened = tag.contains("IMHasBeenOpened") ? tag.getBoolean("IMHasBeenOpened") : tag.getBoolean("HasBeenOpened");
+        this.opened = tag.contains("IMHasBeenOpened") ? tag.getBooleanOr("IMHasBeenOpened", false) : tag.getBooleanOr("HasBeenOpened", false);
         return this;
     }
 

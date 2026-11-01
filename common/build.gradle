@@ -5,11 +5,6 @@ plugins {
 dependencies {
     compileOnly "io.github.flemmli97:tenshilib:${tenshilib_version}-common"
     compileOnly "fuzs.forgeconfigapiport:forgeconfigapiport-common-neoforgeapi:${forge_config_api}"
-
-    commonDependency "io.github.flemmli97:runecraftory:${runecraftory_version}-common"
-    commonDependency "curse.maven:moonlight-499980:8215787"
-    commonDependency "curse.maven:supplementaries-412082:8244187"
-    commonDependency "maven.modrinth:tacz-1.21.1:N9ffXNy0"
 }
 
 sourceSets.main.resources {

@@ -1,6 +1,6 @@
 package io.github.flemmli97.improvedmobs.common.commands;
 
-import com.mojang.authlib.GameProfile;
+import net.minecraft.server.players.NameAndId;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -30,7 +30,7 @@ public class ImprovedMobsCommand {
     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
         dispatcher.register(Commands.literal("improvedmobs")
                 .executes(ImprovedMobsCommand::getDifficulty)
-                .then(Commands.literal("difficulty").requires(src -> src.hasPermission(2))
+                .then(Commands.literal("difficulty").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
                         .then(Commands.literal("player").then(Commands.argument("players", GameProfileArgument.gameProfile())
                                 .then(Commands.literal("set").then(Commands.argument("val", DoubleArgumentType.doubleArg()).executes(ImprovedMobsCommand::setDifficultyPlayer)))
                                 .then(Commands.literal("add").then(Commands.argument("val", DoubleArgumentType.doubleArg()).executes(ImprovedMobsCommand::addDifficultyPlayer)))))
@@ -64,27 +64,27 @@ public class ImprovedMobsCommand {
     }
 
     private static int setDifficultyPlayer(CommandContext<CommandSourceStack> src) throws CommandSyntaxException {
-        Collection<GameProfile> profs = GameProfileArgument.getGameProfiles(src, "players");
+        Collection<NameAndId> profs = GameProfileArgument.getGameProfiles(src, "players");
         MinecraftServer server = src.getSource().getServer();
-        for (GameProfile prof : profs) {
-            ServerPlayer player = server.getPlayerList().getPlayer(prof.getId());
+        for (NameAndId prof : profs) {
+            ServerPlayer player = server.getPlayerList().getPlayer(prof.id());
             PlayerDifficulty data = ImprovedMobsAttachments.PLAYER_DIFFICULTY.get().get(player);
             data.setDifficultyLevel(DoubleArgumentType.getDouble(src, "val"));
             CrossPlatformStuff.INSTANCE.sendClientboundPacket(PacketHandler.createDifficultyPacket(DifficultyData.get(server), player), player);
-            src.getSource().sendSuccess(() -> Component.literal("Difficulty for " + prof.getName() + " set to " + data.getDifficultyLevel()).setStyle(Style.EMPTY.withColor(ChatFormatting.GOLD)), true);
+            src.getSource().sendSuccess(() -> Component.literal("Difficulty for " + prof.name() + " set to " + data.getDifficultyLevel()).setStyle(Style.EMPTY.withColor(ChatFormatting.GOLD)), true);
         }
         return profs.size();
     }
 
     private static int addDifficultyPlayer(CommandContext<CommandSourceStack> src) throws CommandSyntaxException {
-        Collection<GameProfile> profs = GameProfileArgument.getGameProfiles(src, "players");
+        Collection<NameAndId> profs = GameProfileArgument.getGameProfiles(src, "players");
         MinecraftServer server = src.getSource().getServer();
-        for (GameProfile prof : profs) {
-            ServerPlayer player = server.getPlayerList().getPlayer(prof.getId());
+        for (NameAndId prof : profs) {
+            ServerPlayer player = server.getPlayerList().getPlayer(prof.id());
             PlayerDifficulty data = ImprovedMobsAttachments.PLAYER_DIFFICULTY.get().get(player);
             data.setDifficultyLevel(data.getDifficultyLevel() + DoubleArgumentType.getDouble(src, "val"));
             CrossPlatformStuff.INSTANCE.sendClientboundPacket(PacketHandler.createDifficultyPacket(DifficultyData.get(server), player), player);
-            src.getSource().sendSuccess(() -> Component.literal("Difficulty for " + prof.getName() + " set to " + data.getDifficultyLevel()).setStyle(Style.EMPTY.withColor(ChatFormatting.GOLD)), true);
+            src.getSource().sendSuccess(() -> Component.literal("Difficulty for " + prof.name() + " set to " + data.getDifficultyLevel()).setStyle(Style.EMPTY.withColor(ChatFormatting.GOLD)), true);
         }
         return profs.size();
     }
@@ -102,11 +102,11 @@ public class ImprovedMobsCommand {
         return 1;
     }
 
-    private static int pauseDifficulty(CommandContext<CommandSourceStack> src, Collection<GameProfile> profs, boolean pause) throws CommandSyntaxException {
+    private static int pauseDifficulty(CommandContext<CommandSourceStack> src, Collection<NameAndId> profs, boolean pause) throws CommandSyntaxException {
         if (profs != null) {
             MinecraftServer server = src.getSource().getServer();
-            for (GameProfile prof : profs) {
-                ServerPlayer player = server.getPlayerList().getPlayer(prof.getId());
+            for (NameAndId prof : profs) {
+                ServerPlayer player = server.getPlayerList().getPlayer(prof.id());
                 PlayerDifficulty data = ImprovedMobsAttachments.PLAYER_DIFFICULTY.get().get(player);
                 data.setPaused(pause);
             }
@@ -119,12 +119,12 @@ public class ImprovedMobsCommand {
         return 1;
     }
 
-    private static int simulateDifficulty(CommandContext<CommandSourceStack> src, Collection<GameProfile> profs, int steps) {
+    private static int simulateDifficulty(CommandContext<CommandSourceStack> src, Collection<NameAndId> profs, int steps) {
         VariableMap vars = new VariableMap();
         if (profs != null) {
             MinecraftServer server = src.getSource().getServer();
-            for (GameProfile prof : profs) {
-                ServerPlayer player = server.getPlayerList().getPlayer(prof.getId());
+            for (NameAndId prof : profs) {
+                ServerPlayer player = server.getPlayerList().getPlayer(prof.id());
                 PlayerDifficulty data = ImprovedMobsAttachments.PLAYER_DIFFICULTY.get().get(player);
                 Config.apply(vars, player, 0);
                 int i = steps;

@@ -4,7 +4,7 @@ import io.github.flemmli97.improvedmobs.api.DifficultyFeatures;
 import io.github.flemmli97.improvedmobs.api.datapack.EntityOverridesManager;
 import io.github.flemmli97.improvedmobs.common.config.Config;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.Mob;
@@ -50,7 +50,7 @@ public class EntityFeatureConfig {
         Map<EntityType<?>, EnumSet<DifficultyFeatures>> direct = new HashMap<>();
         Map<EntityType<?>, EnumSet<DifficultyFeatures>> tags = new HashMap<>();
         Map<EntityType<?>, EnumSet<DifficultyFeatures>> namespace = new HashMap<>();
-        BuiltInRegistries.ENTITY_TYPE.holders().forEach(type -> {
+        BuiltInRegistries.ENTITY_TYPE.listElements().forEach(type -> {
             this.config.forEach(val -> {
                 String[] subs = val.replace(" ", "").split("\\|");
                 EnumSet<DifficultyFeatures> set;
@@ -63,11 +63,11 @@ public class EntityFeatureConfig {
                 }
                 String entity = subs[0];
                 if (entity.startsWith("#")) {
-                    if (type.is(TagKey.create(BuiltInRegistries.ENTITY_TYPE.key(), ResourceLocation.parse(entity.substring(1)))))
+                    if (type.is(TagKey.create(BuiltInRegistries.ENTITY_TYPE.key(), Identifier.parse(entity.substring(1)))))
                         tags.put(type.value(), set);
                 } else if (type.getRegisteredName().equals(entity)) {
                     direct.put(type.value(), set);
-                } else if (type.key().location().getNamespace().equals(entity)) {
+                } else if (type.key().identifier().getNamespace().equals(entity)) {
                     namespace.put(type.value(), set);
                 }
             });

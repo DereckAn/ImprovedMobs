@@ -1,6 +1,7 @@
 package io.github.flemmli97.improvedmobs.mixin;
 
 import io.github.flemmli97.improvedmobs.mixinhelper.SensingExt;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.targeting.TargetingConditions;
@@ -14,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public abstract class TargetingConditionMixin {
 
     @Inject(method = "test", at = @At(value = "INVOKE", target = "Lnet/minecraft/world/entity/Mob;getSensing()Lnet/minecraft/world/entity/ai/sensing/Sensing;"))
-    private void onTest(@Nullable LivingEntity attacker, LivingEntity target, CallbackInfoReturnable<Boolean> info) {
+    private void onTest(ServerLevel level, @Nullable LivingEntity attacker, LivingEntity target, CallbackInfoReturnable<Boolean> info) {
         ((SensingExt) ((Mob) attacker).getSensing()).improvedMobs$doLineOfSightExt();
     }
 }

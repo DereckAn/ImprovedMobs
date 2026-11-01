@@ -7,7 +7,7 @@ import com.mojang.serialization.DynamicOps;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
@@ -18,7 +18,7 @@ public class EntityTypeValue {
 
         private static final Codec<TagKey<EntityType<?>>> TAG_CODEC = TagKey.hashedCodec(Registries.ENTITY_TYPE);
         private static final Codec<EntityType<?>> TYPE_CODEC = BuiltInRegistries.ENTITY_TYPE.byNameCodec();
-        private static final Codec<String> NAME_SPACE_CODEC = Codec.STRING.validate(s -> ResourceLocation.isValidNamespace(s)
+        private static final Codec<String> NAME_SPACE_CODEC = Codec.STRING.validate(s -> Identifier.isValidNamespace(s)
                 ? DataResult.success(s)
                 : DataResult.error(() -> "Invalid namespace string " + s));
 
@@ -82,6 +82,6 @@ public class EntityTypeValue {
     }
 
     public boolean isNamespace(Holder<EntityType<?>> type) {
-        return type.unwrapKey().orElseThrow().location().getNamespace().equals(this.modid);
+        return type.unwrapKey().orElseThrow().identifier().getNamespace().equals(this.modid);
     }
 }

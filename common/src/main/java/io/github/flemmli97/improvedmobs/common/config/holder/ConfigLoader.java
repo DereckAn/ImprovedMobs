@@ -83,6 +83,7 @@ public class ConfigLoader {
             }
         }
         Config.CommonConfig.neutralAggressiv.read(ConfigSpecs.COMMON_CONF.neutralAggressiv.get());
+        Config.CommonConfig.nightSpawnMultiplier.read(ConfigSpecs.COMMON_CONF.nightSpawnMultiplier.get());
         Config.CommonConfig.guardianAIChance.read(ConfigSpecs.COMMON_CONF.guardianAIChance.get());
         Config.CommonConfig.flyAIChance.read(ConfigSpecs.COMMON_CONF.flyAIChance.get());
         Config.CommonConfig.tntBlockDestruction = ConfigSpecs.COMMON_CONF.tntBlockDestruction.get();

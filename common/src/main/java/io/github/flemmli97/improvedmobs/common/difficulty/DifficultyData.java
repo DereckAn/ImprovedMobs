@@ -16,7 +16,10 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.EntityGetter;
 import net.minecraft.world.level.Level;
+import com.mojang.serialization.Codec;
+import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import net.minecraft.world.level.saveddata.SavedData;
+import net.minecraft.world.level.saveddata.SavedDataType;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
@@ -24,8 +27,9 @@ import java.util.List;
 
 public class DifficultyData extends SavedData {
 
-    private static final String IDENTIFIER = "Difficulty";
-    private static final SavedData.Factory<DifficultyData> FACTORY = new Factory<>(DifficultyData::new, DifficultyData::new, DataFixTypes.LEVEL);
+    // ponytail: wraps the old NBT load/save in a codec. Save files from 1.21.1 used a different name and are not migrated
+    private static final Codec<DifficultyData> CODEC = CompoundTag.CODEC.xmap(tag -> new DifficultyData(tag, null), data -> data.save(new CompoundTag(), null));
+    private static final SavedDataType<DifficultyData> TYPE = new SavedDataType<>(ImprovedMobs.modRes("difficulty"), DifficultyData::new, CODEC, DataFixTypes.LEVEL);
 
     private int difficultyIndex;
     private double difficultyLevel;
@@ -41,7 +45,7 @@ public class DifficultyData extends SavedData {
     }
 
     public static DifficultyData get(MinecraftServer server) {
-        return server.overworld().getDataStorage().computeIfAbsent(FACTORY, IDENTIFIER);
+        return server.overworld().getDataStorage().computeIfAbsent(TYPE);
     }
 
     public static double getDifficulty(Level level, LivingEntity entity) {
@@ -87,14 +91,14 @@ public class DifficultyData extends SavedData {
     }
 
     public void updateTime(MinecraftServer server) {
-        this.prevTime = server.overworld().getDayTime();
+        this.prevTime = server.overworld().getOverworldClockTime();
         this.setDirty();
     }
 
     public void setDifficulty(double level, MinecraftServer server) {
         this.difficultyLevel = level;
         this.difficultyIndex = 0;
-        this.prevTime = server.overworld().getDayTime();
+        this.prevTime = server.overworld().getOverworldClockTime();
         CrossPlatformStuff.INSTANCE.sendDifficultyData(this, server);
         this.setDirty();
     }
@@ -116,13 +120,13 @@ public class DifficultyData extends SavedData {
     public static double getDifficultyFromDist(ServerLevel level, Vec3 pos) {
         double dist;
         if (Config.CommonConfig.difficultyType == Config.DifficultyType.DISTANCESPAWN) {
-            dist = Math.sqrt(pos.distanceToSqr(level.getSharedSpawnPos().getX() + 0.5, pos.y(), level.getSharedSpawnPos().getZ() + 0.5));
+            dist = Math.sqrt(pos.distanceToSqr(level.getRespawnData().pos().getX() + 0.5, pos.y(), level.getRespawnData().pos().getZ() + 0.5));
         } else {
             dist = Math.sqrt(pos.distanceToSqr(Config.CommonConfig.centerPos.getPos().x() + 0.5, pos.y(), Config.CommonConfig.centerPos.getPos().z() + 0.5));
         }
         DifficultyExpressionConfig.DifficultyExpression value = Config.CommonConfig.difficultyIncrease.get(dist, 0);
         VariableMap map = new VariableMap();
-        Config.apply(map, level.getRandom(), level.getSharedSpawnPos(), pos, 0);
+        Config.apply(map, level.getRandom(), level.getRespawnData().pos(), pos, 0);
         return value.get(map);
     }
 
@@ -131,13 +135,12 @@ public class DifficultyData extends SavedData {
     }
 
     public void load(CompoundTag tag) {
-        this.difficultyLevel = tag.getDouble("Difficulty");
-        this.difficultyIndex = tag.getInt("DifficultyIndex");
-        this.prevTime = tag.getLong("Time");
-        this.paused = tag.getBoolean("Paused");
+        this.difficultyLevel = tag.getDoubleOr("Difficulty", 0);
+        this.difficultyIndex = tag.getIntOr("DifficultyIndex", 0);
+        this.prevTime = tag.getLongOr("Time", 0L);
+        this.paused = tag.getBooleanOr("Paused", false);
     }
 
-    @Override
     public CompoundTag save(CompoundTag tag, HolderLookup.Provider provider) {
         tag.putDouble("Difficulty", this.difficultyLevel);
         tag.putInt("DifficultyIndex", this.difficultyIndex);

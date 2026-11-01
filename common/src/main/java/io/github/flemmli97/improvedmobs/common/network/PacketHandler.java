@@ -17,7 +17,7 @@ public class PacketHandler {
             return new S2CDiffcultyValue(data.getDifficulty());
         } else {
             return new S2CDiffcultyValue(Config.CommonConfig.difficultyType.increaseDifficulty ? ImprovedMobsAttachments.PLAYER_DIFFICULTY.get().get(player).getDifficultyLevel()
-                    : DifficultyData.getDifficultyFromDist(player.serverLevel(), player.position()));
+                    : DifficultyData.getDifficultyFromDist(player.level(), player.position()));
         }
     }
 }

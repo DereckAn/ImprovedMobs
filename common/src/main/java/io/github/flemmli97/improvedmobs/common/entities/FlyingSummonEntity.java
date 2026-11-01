@@ -1,11 +1,12 @@
 package io.github.flemmli97.improvedmobs.common.entities;
 
+import net.minecraft.world.entity.EntityTypes;
 import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
@@ -26,13 +27,13 @@ import net.minecraft.world.phys.Vec3;
 
 public class FlyingSummonEntity extends RiddenSummonEntity {
 
-    public static final ResourceLocation SUMMONED_FLYING_ID = ImprovedMobs.modRes("flying_entity");
+    public static final Identifier SUMMONED_FLYING_ID = ImprovedMobs.modRes("flying_entity");
 
     private static final EntityDataAccessor<Integer> DATA_ID_SIZE = SynchedEntityData.defineId(FlyingSummonEntity.class, EntityDataSerializers.INT);
 
     public FlyingSummonEntity(Level level) {
-        super(EntityType.PHANTOM, level);
-        if (!level.isClientSide) {
+        super(EntityTypes.PHANTOM, level);
+        if (!level.isClientSide()) {
             this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.2);
             this.getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(24);
         }
@@ -56,7 +57,7 @@ public class FlyingSummonEntity extends RiddenSummonEntity {
         };
         flyingPathNavigation.setCanOpenDoors(false);
         flyingPathNavigation.setCanFloat(true);
-        flyingPathNavigation.setCanPassDoors(true);
+        flyingPathNavigation.getNodeEvaluator().setCanPassDoors(true);
         return flyingPathNavigation;
     }
 
@@ -81,7 +82,7 @@ public class FlyingSummonEntity extends RiddenSummonEntity {
     }
 
     @Override
-    public ResourceLocation serverSideID() {
+    public Identifier serverSideID() {
         return SUMMONED_FLYING_ID;
     }
 
@@ -94,7 +95,7 @@ public class FlyingSummonEntity extends RiddenSummonEntity {
     }
 
     @Override
-    public boolean causeFallDamage(float fallDistance, float multiplier, DamageSource source) {
+    public boolean causeFallDamage(double fallDistance, float multiplier, DamageSource source) {
         return false;
     }
 

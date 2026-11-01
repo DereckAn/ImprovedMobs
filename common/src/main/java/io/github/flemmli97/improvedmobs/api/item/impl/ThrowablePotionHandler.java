@@ -12,7 +12,10 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.projectile.ThrownPotion;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.AbstractThrownPotion;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownLingeringPotion;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownSplashPotion;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ThrowablePotionItem;
@@ -34,11 +37,11 @@ public class ThrowablePotionHandler implements ItemUseHandler {
     public int use(LivingEntity entity, LivingEntity target, InteractionHand hand) {
         ItemStack stack = entity.getItemInHand(hand);
         double dis = entity.position().distanceTo(target.position());
-        ThrownPotion potion = new ThrownPotion(entity.level(), entity);
-        potion.setItem(stack);
+        AbstractThrownPotion potion = stack.is(Items.LINGERING_POTION) ? new ThrownLingeringPotion(entity.level(), entity, stack)
+                : new ThrownSplashPotion(entity.level(), entity, stack);
         potion.shootFromRotation(entity, entity.getViewXRot(1), entity.getViewYRot(1), -30.0F, 0.2F + (float) (dis * 0.05), 1.2F);
         EntityFlags.get(potion).isThrownEntity = true;
-        entity.playSound(SoundEvents.SPLASH_POTION_THROW, 0.5F, 0.4F / (entity.level().random.nextFloat() * 0.4F + 0.8F));
+        entity.playSound(SoundEvents.SPLASH_POTION_THROW, 0.5F, 0.4F / (entity.level().getRandom().nextFloat() * 0.4F + 0.8F));
         entity.level().addFreshEntity(potion);
         return 80 + entity.getRandom().nextInt(10);
     }

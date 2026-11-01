@@ -20,7 +20,7 @@ import io.github.flemmli97.improvedmobs.common.utils.Utils;
 import io.github.flemmli97.improvedmobs.mixin.MobEntityMixin;
 import io.github.flemmli97.improvedmobs.mixin.NearestTargetGoalMixin;
 import io.github.flemmli97.improvedmobs.mixin.TargetGoalAccessor;
-import io.github.flemmli97.improvedmobs.mixinhelper.EntitySpawnReason;
+import io.github.flemmli97.improvedmobs.mixinhelper.SpawnReasonAccess;
 import io.github.flemmli97.improvedmobs.platform.CrossPlatformStuff;
 import io.github.flemmli97.tenshilib.common.utils.math.parser.VariableMap;
 import net.minecraft.core.BlockPos;
@@ -35,7 +35,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.NeutralMob;
 import net.minecraft.world.entity.OwnableEntity;
 import net.minecraft.world.entity.PathfinderMob;
@@ -45,16 +45,17 @@ import net.minecraft.world.entity.ai.navigation.FlyingPathNavigation;
 import net.minecraft.world.entity.ai.navigation.WallClimberNavigation;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.monster.Monster;
-import net.minecraft.world.entity.monster.Slime;
-import net.minecraft.world.entity.npc.AbstractVillager;
+import net.minecraft.world.entity.monster.cubemob.Slime;
+import net.minecraft.world.entity.npc.villager.AbstractVillager;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.entity.projectile.Snowball;
-import net.minecraft.world.entity.projectile.ThrownPotion;
-import net.minecraft.world.item.ArmorItem;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.Snowball;
+import net.minecraft.world.entity.projectile.throwableitemprojectile.AbstractThrownPotion;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Explosion;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.phys.EntityHitResult;
@@ -85,33 +86,33 @@ public class EventCalls {
             }
             return;
         }
-        boolean shouldIncrease = (Config.CommonConfig.ignorePlayers || !level.getServer().getPlayerList().getPlayers().isEmpty()) && level.getDayTime() > Config.CommonConfig.difficultyDelay;
+        boolean shouldIncrease = (Config.CommonConfig.ignorePlayers || !level.getServer().getPlayerList().getPlayers().isEmpty()) && level.getOverworldClockTime() > Config.CommonConfig.difficultyDelay;
         DifficultyData data = DifficultyData.get(level.getServer());
-        long timeDiff = Math.abs(level.getDayTime() - data.getPrevTime());
+        long timeDiff = Math.abs(level.getOverworldClockTime() - data.getPrevTime());
         if (Config.CommonConfig.considerTimeskip) {
             if (timeDiff > 2400) {
                 long i = timeDiff / 2400;
                 if (timeDiff - i * 2400 > (i + 1) * 2400 - timeDiff)
                     i += 1;
                 while (i > 0) {
-                    data.increaseDifficulty(shouldIncrease, level.getDayTime(), level.getServer());
+                    data.increaseDifficulty(shouldIncrease, level.getOverworldClockTime(), level.getServer());
                     i--;
                 }
             }
         } else {
             if (timeDiff > 2400) {
-                data.increaseDifficulty(shouldIncrease, level.getDayTime(), level.getServer());
+                data.increaseDifficulty(shouldIncrease, level.getOverworldClockTime(), level.getServer());
             }
         }
     }
 
     public static void onEntityLoad(Mob mob) {
-        if (mob.level().isClientSide || mob instanceof RiddenSummonEntity)
+        if (mob.level().isClientSide() || mob instanceof RiddenSummonEntity)
             return;
-        if (((EntitySpawnReason) mob).improvedMobs$getSpawnReason() == MobSpawnType.SPAWNER && Config.CommonConfig.ignoreSpawner)
+        if (((SpawnReasonAccess) mob).improvedMobs$getSpawnReason() == EntitySpawnReason.SPAWNER && Config.CommonConfig.ignoreSpawner)
             return;
         EntityFlags flags = EntityFlags.get(mob);
-        boolean mobGriefing = mob.level().getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING);
+        boolean mobGriefing = mob.level() instanceof ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.MOB_GRIEFING);
         double difficulty = DifficultyData.getDifficulty(mob.level(), mob);
         VariableMap map = Config.create(mob, difficulty);
         if (flags.canBreakBlocks == EntityFlags.FlagType.UNDEFINED) {
@@ -193,7 +194,7 @@ public class EventCalls {
         if (pred == null)
             goal = new NearestAttackableTargetGoal<>(e, clss, !ignoreSight);
         else
-            goal = new NearestAttackableTargetGoal<>(e, clss, 10, !ignoreSight, false, pred);
+            goal = new NearestAttackableTargetGoal<>(e, clss, 10, !ignoreSight, false, (target, level) -> pred.test(target));
         if (ignoreSight)
             ((NearestTargetGoalMixin) goal).getTargetEntitySelector().ignoreLineOfSight();
         return goal;
@@ -236,7 +237,7 @@ public class EventCalls {
     }
 
     public static boolean onAttackEvent(LivingEntity target, DamageSource damagesource) {
-        if (!target.level().isClientSide) {
+        if (!target.level().isClientSide()) {
             if (!Config.CommonConfig.friendlyFire && target instanceof TamableAnimal) {
                 TamableAnimal pet = (TamableAnimal) target;
                 if (damagesource.getEntity() != null && damagesource.getEntity() == pet.getOwner() && !damagesource.getEntity().isShiftKeyDown()) {
@@ -267,7 +268,7 @@ public class EventCalls {
     }
 
     public static void openTile(Player player, BlockPos pos) {
-        if (!player.level().isClientSide && !player.isShiftKeyDown()) {
+        if (!player.level().isClientSide() && !player.isShiftKeyDown()) {
             BlockEntity blockEntity = player.level().getBlockEntity(pos);
             if (blockEntity != null) {
                 ImprovedMobsAttachments.HAS_BEEN_OPENED.get().get(blockEntity)
@@ -277,12 +278,13 @@ public class EventCalls {
     }
 
     public static boolean equipPet(Player player, InteractionHand hand, Entity target) {
-        if (hand == InteractionHand.MAIN_HAND && target instanceof Mob mob && (mob instanceof OwnableEntity || mob.getType().is(ImprovedMobs.ARMOR_EQUIPPABLE)) && !target.level().isClientSide && player.isShiftKeyDown()
+        if (hand == InteractionHand.MAIN_HAND && target instanceof Mob mob && (mob instanceof OwnableEntity || mob.is(ImprovedMobs.ARMOR_EQUIPPABLE)) && !target.level().isClientSide() && player.isShiftKeyDown()
                 && !Utils.isInList(target, Config.CommonConfig.petArmorBlackList, Config.CommonConfig.petWhiteList, Utils.ENTITY_ID)) {
             if (!(mob instanceof OwnableEntity pet) || player == pet.getOwner()) {
                 ItemStack heldItem = player.getMainHandItem();
-                if (heldItem.getItem() instanceof ArmorItem armor) {
-                    EquipmentSlot type = armor.getEquipmentSlot();
+                Equippable equippable = heldItem.get(DataComponents.EQUIPPABLE);
+                if (equippable != null && equippable.slot().getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
+                    EquipmentSlot type = equippable.slot();
                     switch (type) {
                         case HEAD -> equipPetItem(player, mob, heldItem, EquipmentSlot.HEAD);
                         case CHEST -> equipPetItem(player, mob, heldItem, EquipmentSlot.CHEST);
@@ -316,7 +318,7 @@ public class EventCalls {
         if (EntityFlags.get(projectile).isThrownEntity) {
             Entity thrower = (projectile).getOwner();
             if (thrower instanceof Mob) {
-                if (!(projectile instanceof ThrownPotion) && hitResult.getType() == HitResult.Type.ENTITY) {
+                if (!(projectile instanceof AbstractThrownPotion) && hitResult.getType() == HitResult.Type.ENTITY) {
                     EntityHitResult res = (EntityHitResult) hitResult;
                     if (!res.getEntity().equals(((Mob) thrower).getTarget()))
                         return true;
@@ -326,10 +328,13 @@ public class EventCalls {
         return false;
     }
 
+    public static void explosionBlocks(Entity source, List<BlockPos> toBlow) {
+        if (source != null && EntityFlags.get(source).isThrownEntity && !Config.CommonConfig.tntBlockDestruction)
+            toBlow.clear();
+    }
+
     public static void explosion(Explosion explosion, Entity source, List<Entity> affectedEntities) {
         if (source != null && EntityFlags.get(source).isThrownEntity) {
-            if (!Config.CommonConfig.tntBlockDestruction)
-                explosion.getToBlow().clear();
             LivingEntity igniter = explosion.getIndirectSourceEntity();
             if (igniter instanceof Mob) {
                 affectedEntities.removeIf(e -> !e.equals(((Mob) igniter).getTarget()));

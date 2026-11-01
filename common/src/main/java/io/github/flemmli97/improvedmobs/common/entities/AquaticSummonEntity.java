@@ -1,11 +1,12 @@
 package io.github.flemmli97.improvedmobs.common.entities;
 
+import net.minecraft.world.entity.EntityTypes;
 import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import io.github.flemmli97.improvedmobs.common.entities.ai.pathfinding.WaterNavigation;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.util.Mth;
@@ -22,7 +23,7 @@ import net.minecraft.world.phys.Vec3;
 
 public class AquaticSummonEntity extends RiddenSummonEntity {
 
-    public static final ResourceLocation SUMMONED_AQUATIC_ID = ImprovedMobs.modRes("aquatic_entity");
+    public static final Identifier SUMMONED_AQUATIC_ID = ImprovedMobs.modRes("aquatic_entity");
 
     private static final EntityDataAccessor<Boolean> DATA_ID_MOVING = SynchedEntityData.defineId(AquaticSummonEntity.class, EntityDataSerializers.BOOLEAN);
 
@@ -30,7 +31,7 @@ public class AquaticSummonEntity extends RiddenSummonEntity {
     private int leapTick;
 
     public AquaticSummonEntity(Level level) {
-        super(EntityType.GUARDIAN, level);
+        super(EntityTypes.GUARDIAN, level);
         this.setPathfindingMalus(PathType.WATER, 0.0f);
         this.moveControl = new AquaticMoveControl(this);
     }
@@ -60,7 +61,7 @@ public class AquaticSummonEntity extends RiddenSummonEntity {
         --this.leapTick;
         if (this.leapTick < 0 || this.onGround())
             this.leapDir = null;
-        if (this.isInWaterOrBubble()) {
+        if (this.isInWater()) {
             this.setAirSupply(300);
         }
     }
@@ -89,7 +90,7 @@ public class AquaticSummonEntity extends RiddenSummonEntity {
     }
 
     @Override
-    public ResourceLocation serverSideID() {
+    public Identifier serverSideID() {
         return SUMMONED_AQUATIC_ID;
     }
 

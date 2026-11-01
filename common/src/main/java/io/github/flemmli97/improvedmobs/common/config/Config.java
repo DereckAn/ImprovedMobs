@@ -15,10 +15,8 @@ import io.github.flemmli97.tenshilib.common.utils.math.parser.VariableMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.RandomSource;
-import net.minecraft.util.random.Weight;
-import net.minecraft.util.random.WeightedEntry;
 import net.minecraft.util.random.WeightedRandom;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.Item;
@@ -52,7 +50,7 @@ public class Config {
         public static boolean ignoreSpawner;
         public static DifficultyExpressionConfig difficultyIncrease = new DifficultyExpressionConfig(
                 new DifficultyExpressionConfig.UnresolvedValue(0, "difficulty + 0.1"),
-                new DifficultyExpressionConfig.UnresolvedValue(250, "difficulty"));
+                new DifficultyExpressionConfig.UnresolvedValue(500, "difficulty"));
         public static boolean ignorePlayers;
         public static boolean considerTimeskip = true;
         public static boolean friendlyFire;
@@ -68,7 +66,7 @@ public class Config {
 
         // Integration
         public static IntegrationType vanillaClamped = IntegrationType.OFF;
-        public static float vanillaClampedMax = 250;
+        public static float vanillaClampedMax = 500;
         public static IntegrationType usePowerScaleMod = IntegrationType.ON;
         public static IntegrationType usePlayerEXMod = IntegrationType.ON;
         public static float playerEXScale = 1;
@@ -96,6 +94,7 @@ public class Config {
         public static boolean breakBlockEntities = true;
         public static List<WeightedItem> breakingItem = new ArrayList<>();
         public static ExpressionConfig neutralAggressiv = new ExpressionConfig("0.05");
+        public static ExpressionConfig nightSpawnMultiplier = new ExpressionConfig("1 + min(difficulty / 500, 1)");
         public static ExpressionConfig guardianAIChance = new ExpressionConfig("0.5");
         public static ExpressionConfig flyAIChance = new ExpressionConfig("0.5");
         public static boolean tntBlockDestruction;
@@ -118,28 +117,30 @@ public class Config {
                 Pair.of("minecraft:snow_golem", "minecraft:snowball")
         );
 
-        public static ExpressionConfig equipmentChance = new ExpressionConfig("0.1 + min(difficulty * 0.8 / 250, 0.8)");
-        public static ExpressionConfig additionalEquipmentChance = new ExpressionConfig("0.3 + min(difficulty * 0.6 / 250, 0.6)");
-        public static ExpressionConfig randomTrimChance = new ExpressionConfig("0.05 + min(difficulty * 0.2 / 250, 0.2)");
-        public static ExpressionConfig mainHandChance = new ExpressionConfig("0.1 + min(difficulty * 0.3 / 250, 0.3)");
-        public static ExpressionConfig offHandChance = new ExpressionConfig("0.1 + min(difficulty * 0.3 / 250, 0.3)");
+        public static ExpressionConfig equipmentChance = new ExpressionConfig("min(0.1 + difficulty * 0.8 / 250, 1)");
+        public static ExpressionConfig additionalEquipmentChance = new ExpressionConfig("min(0.3 + difficulty * 0.6 / 250, 1)");
+        public static ExpressionConfig randomTrimChance = new ExpressionConfig("0.05 + min(difficulty * 0.2 / 250, 0.4)");
+        public static ExpressionConfig mainHandChance = new ExpressionConfig("0.1 + min(difficulty * 0.3 / 250, 0.6)");
+        public static ExpressionConfig offHandChance = new ExpressionConfig("0.1 + min(difficulty * 0.3 / 250, 0.6)");
         public static ExpressionConfig dropChance = new ExpressionConfig("0");
-        public static ExpressionConfig enchantChance = new ExpressionConfig("0.2 + min(difficulty * 0.6 / 250, 0.6)");
+        public static ExpressionConfig enchantChance = new ExpressionConfig("min(0.2 + difficulty * 0.6 / 250, 1)");
         public static StepExpressionConfig enchantCalc = new StepExpressionConfig(StepExpressionConfig.ENCHANT_DEFAULT,
                 new StepExpressionConfig.Value(0, "random_integer(1, 10)"),
                 new StepExpressionConfig.Value(25, "random_integer(5, 15)"),
                 new StepExpressionConfig.Value(50, "random_integer(10, 17)"),
                 new StepExpressionConfig.Value(100, "random_integer(15, 25)"),
                 new StepExpressionConfig.Value(200, "random_integer(20, 30)"),
-                new StepExpressionConfig.Value(250, "random_integer(30, 35)"));
+                new StepExpressionConfig.Value(250, "random_integer(30, 35)"),
+                new StepExpressionConfig.Value(350, "random_integer(35, 45)"),
+                new StepExpressionConfig.Value(500, "random_integer(45, 60)"));
         public static List<String> enchantBlacklist = new ArrayList<>();
         public static boolean enchantWhitelist;
 
         public static ItemStack getRandomBreakingItem(RandomSource rand) {
-            int total = WeightedRandom.getTotalWeight(breakingItem);
+            int total = WeightedRandom.getTotalWeight(breakingItem, WeightedItem::getWeight);
             if (breakingItem.isEmpty() || total <= 0)
                 return ItemStack.EMPTY;
-            return WeightedRandom.getRandomItem(rand, breakingItem, total).map(WeightedItem::getStack).orElse(ItemStack.EMPTY);
+            return WeightedRandom.getRandomItem(rand, breakingItem, total, WeightedItem::getWeight).map(WeightedItem::getStack).orElse(ItemStack.EMPTY);
         }
     }
 
@@ -148,7 +149,7 @@ public class Config {
     }
 
     public static VariableMap apply(VariableMap variables, LivingEntity entity, double difficulty) {
-        return apply(variables, entity.getRandom(), entity.level().getSharedSpawnPos(), entity.position(), difficulty);
+        return apply(variables, entity.getRandom(), entity.level().getRespawnData().pos(), entity.position(), difficulty);
     }
 
     public static VariableMap apply(VariableMap variables, RandomSource random, BlockPos spawn, Vec3 pos, double difficulty) {
@@ -162,7 +163,7 @@ public class Config {
                 .setVariable("distance_center", distCenter);
     }
 
-    public static class WeightedItem implements WeightedEntry {
+    public static class WeightedItem {
 
         private final LazyItem item;
         private final int weight;
@@ -176,9 +177,8 @@ public class Config {
             return this.item.getStack();
         }
 
-        @Override
-        public Weight getWeight() {
-            return Weight.of(this.weight);
+        public int getWeight() {
+            return this.weight;
         }
     }
 
@@ -193,7 +193,7 @@ public class Config {
 
         public ItemStack getStack() {
             if (this.item == null)
-                this.item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(this.config));
+                this.item = BuiltInRegistries.ITEM.getValue(Identifier.parse(this.config));
             return new ItemStack(this.item);
         }
     }

@@ -13,7 +13,7 @@ public class FishingRodHandler implements ItemUseHandler {
     public static void ropeInTarget(LivingEntity entity, LivingEntity target) {
         Vec3 vec3 = entity.position().subtract(target.position()).normalize().scale(1.5);
         target.setDeltaMovement(target.getDeltaMovement().add(vec3.add(0, 0.3, 0)));
-        target.hurtMarked = true;
+        target.needsSync = true;
         entity.playSound(SoundEvents.FISHING_BOBBER_RETRIEVE, 1, 0.4f / (entity.getRandom().nextFloat() * 0.4f + 0.8f));
     }
 

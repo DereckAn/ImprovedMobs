@@ -1,10 +1,12 @@
 package io.github.flemmli97.improvedmobs.mixin;
 
-import io.github.flemmli97.improvedmobs.mixinhelper.EntitySpawnReason;
-import net.minecraft.nbt.CompoundTag;
+import com.mojang.serialization.Codec;
+import io.github.flemmli97.improvedmobs.mixinhelper.SpawnReasonAccess;
 import net.minecraft.world.DifficultyInstance;
 import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.MobSpawnType;
+import net.minecraft.world.level.storage.ValueInput;
+import net.minecraft.world.level.storage.ValueOutput;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.SpawnGroupData;
 import net.minecraft.world.level.ServerLevelAccessor;
 import org.jetbrains.annotations.Nullable;
@@ -16,31 +18,30 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(Mob.class)
-public abstract class MobMixin implements EntitySpawnReason {
+public abstract class MobMixin implements SpawnReasonAccess {
 
     @Unique
-    private MobSpawnType improvedmobs$spawnreason;
+    private EntitySpawnReason improvedmobs$spawnreason;
 
     @Inject(method = "finalizeSpawn", at = @At("HEAD"))
-    private void onFinalize(ServerLevelAccessor level, DifficultyInstance difficulty, MobSpawnType spawnType, @Nullable SpawnGroupData spawnGroupData,
+    private void onFinalize(ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnType, @Nullable SpawnGroupData spawnGroupData,
                             CallbackInfoReturnable<SpawnGroupData> info) {
         this.improvedmobs$spawnreason = spawnType;
     }
 
     @Inject(method = "readAdditionalSaveData", at = @At("HEAD"))
-    private void readData(CompoundTag compoundTag, CallbackInfo info) {
-        if (compoundTag.contains("MobSpawnReason"))
-            this.improvedmobs$spawnreason = MobSpawnType.values()[compoundTag.getInt("MobSpawnReason")];
+    private void readData(ValueInput input, CallbackInfo info) {
+        input.read("MobSpawnReason", Codec.INT).ifPresent(i -> this.improvedmobs$spawnreason = EntitySpawnReason.values()[i]);
     }
 
     @Inject(method = "addAdditionalSaveData", at = @At("HEAD"))
-    private void saveData(CompoundTag compoundTag, CallbackInfo info) {
+    private void saveData(ValueOutput output, CallbackInfo info) {
         if (this.improvedmobs$spawnreason != null)
-            compoundTag.putInt("MobSpawnReason", this.improvedmobs$spawnreason.ordinal());
+            output.putInt("MobSpawnReason", this.improvedmobs$spawnreason.ordinal());
     }
 
     @Override
-    public MobSpawnType improvedMobs$getSpawnReason() {
+    public EntitySpawnReason improvedMobs$getSpawnReason() {
         return this.improvedmobs$spawnreason;
     }
 }

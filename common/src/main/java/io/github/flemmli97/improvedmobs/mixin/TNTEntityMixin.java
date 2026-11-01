@@ -30,7 +30,7 @@ public abstract class TNTEntityMixin extends Entity implements TNTExtension {
         if (EntityFlags.get(tnt).isThrownEntity && tnt.getFuse() == 2) {
             info.cancel();
             tnt.remove(RemovalReason.KILLED);
-            if (!tnt.level().isClientSide)
+            if (!tnt.level().isClientSide())
                 this.explode();
         }
     }

@@ -12,7 +12,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.tags.BlockTags;
@@ -20,8 +20,8 @@ import net.minecraft.tags.TagKey;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.item.AxeItem;
+import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+import net.minecraft.tags.ItemTags;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ShieldItem;
@@ -33,8 +33,8 @@ import java.nio.file.Path;
 
 public class CrossPlatformStuffImpl implements CrossPlatformStuff {
 
-    public static final TagKey<Item> FABRIC_AXE = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("fabric", "axes"));
-    public static final TagKey<Item> COMMON_AXE = TagKey.create(Registries.ITEM, ResourceLocation.fromNamespaceAndPath("c", "axes"));
+    public static final TagKey<Item> FABRIC_AXE = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("fabric", "axes"));
+    public static final TagKey<Item> COMMON_AXE = TagKey.create(Registries.ITEM, Identifier.fromNamespaceAndPath("c", "axes"));
 
     @Override
     public boolean canLoot(BlockEntity blockEntity) {
@@ -100,6 +100,6 @@ public class CrossPlatformStuffImpl implements CrossPlatformStuff {
 
     @Override
     public boolean canDisableShield(ItemStack attackingStack, ItemStack held, LivingEntity entity, LivingEntity attacker) {
-        return (attackingStack.getItem() instanceof AxeItem || attackingStack.is(FABRIC_AXE) || attackingStack.is(COMMON_AXE)) && held.getItem() instanceof ShieldItem;
+        return (attackingStack.is(ItemTags.AXES) || attackingStack.is(FABRIC_AXE) || attackingStack.is(COMMON_AXE)) && held.getItem() instanceof ShieldItem;
     }
 }

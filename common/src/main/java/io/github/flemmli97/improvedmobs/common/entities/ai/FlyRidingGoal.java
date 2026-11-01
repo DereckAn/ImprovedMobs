@@ -62,7 +62,7 @@ public class FlyRidingGoal extends Goal {
         if (this.isFlying())
             return false;
         LivingEntity target = this.living.getTarget();
-        if (target == null || !target.isAlive() || !this.living.isWithinRestriction(target.blockPosition())) {
+        if (target == null || !target.isAlive() || !this.living.isWithinHome(target.blockPosition())) {
             this.targetDelay = 0;
         } else if (!this.living.isPassenger() && ++this.targetDelay > 100) {
             if (--this.pathCheckWait <= 0) {
@@ -114,7 +114,7 @@ public class FlyRidingGoal extends Goal {
             if (!this.living.isPassenger()) {
                 FlyingSummonEntity summon = new FlyingSummonEntity(this.living.level());
                 BlockPos pos = this.living.blockPosition();
-                summon.moveTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, this.living.getYRot(), this.living.getXRot());
+                summon.snapTo(pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, this.living.getYRot(), this.living.getXRot());
                 if (summon.doesntCollideWithRidden(this.living)) {
                     this.living.level().addFreshEntity(summon);
                     summon.scheduledRide(this.living);

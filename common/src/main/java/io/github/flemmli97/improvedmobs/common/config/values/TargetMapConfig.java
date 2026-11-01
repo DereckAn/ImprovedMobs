@@ -7,7 +7,7 @@ import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
@@ -47,13 +47,13 @@ public class TargetMapConfig {
             String source = sub[0];
             Consumer<Either<TagKey<EntityType<?>>, EntityType<?>>> cons;
             if (source.startsWith("#")) {
-                TagKey<EntityType<?>> tag = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse(source.substring(1)));
-                cons = either -> BuiltInRegistries.ENTITY_TYPE.getTag(tag)
+                TagKey<EntityType<?>> tag = TagKey.create(Registries.ENTITY_TYPE, Identifier.parse(source.substring(1)));
+                cons = either -> BuiltInRegistries.ENTITY_TYPE.get(tag)
                         .ifPresent(named -> either
                                 .ifLeft(t -> tags.computeIfAbsent(named, key -> new PredicateBuilder()).appendTag(t))
                                 .ifRight(t -> tags.computeIfAbsent(named, key -> new PredicateBuilder()).appendType(t)));
             } else {
-                Optional<EntityType<?>> type = BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(source));
+                Optional<EntityType<?>> type = BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(source));
                 if (type.isEmpty())
                     continue;
                 cons = either -> either
@@ -61,12 +61,12 @@ public class TargetMapConfig {
                         .ifRight(t -> direct.computeIfAbsent(type.get(), key -> new PredicateBuilder()).appendType(t));
             }
             if (sub[1].startsWith("#")) {
-                TagKey<EntityType<?>> tag = TagKey.create(Registries.ENTITY_TYPE, ResourceLocation.parse(sub[1].substring(1)));
-                if (BuiltInRegistries.ENTITY_TYPE.getTag(tag).isPresent()) {
+                TagKey<EntityType<?>> tag = TagKey.create(Registries.ENTITY_TYPE, Identifier.parse(sub[1].substring(1)));
+                if (BuiltInRegistries.ENTITY_TYPE.get(tag).isPresent()) {
                     cons.accept(Either.left(tag));
                 }
             } else {
-                EntityType<?> target = BuiltInRegistries.ENTITY_TYPE.getOptional(ResourceLocation.parse(sub[1])).orElse(null);
+                EntityType<?> target = BuiltInRegistries.ENTITY_TYPE.getOptional(Identifier.parse(sub[1])).orElse(null);
                 if (target == null) {
                     ImprovedMobs.LOGGER.error("Entity {} does not exist/is not registered", sub[1]);
                     continue;
@@ -123,7 +123,7 @@ public class TargetMapConfig {
         public Predicate<EntityType<?>> build() {
             Set<EntityType<?>> direct = ImmutableSet.copyOf(this.direct);
             List<TagKey<EntityType<?>>> tags = ImmutableList.copyOf(this.tags);
-            return type -> direct.contains(type) || tags.stream().anyMatch(type::is);
+            return type -> direct.contains(type) || tags.stream().anyMatch(type.builtInRegistryHolder()::is);
         }
     }
 }

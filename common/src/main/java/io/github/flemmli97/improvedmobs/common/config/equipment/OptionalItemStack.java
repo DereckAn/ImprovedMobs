@@ -6,12 +6,13 @@ import com.mojang.serialization.DataResult;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 import io.github.flemmli97.tenshilib.common.utils.CodecUtils;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderOwner;
 import net.minecraft.core.HolderSet;
 import net.minecraft.core.component.DataComponentPatch;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.tags.TagKey;
 import net.minecraft.util.ExtraCodecs;
 import net.minecraft.world.item.Item;
@@ -28,9 +29,10 @@ public record OptionalItemStack(Either<TagKey<Item>, Holder.Reference<Item>> ite
                                 DataComponentPatch components) {
 
     // Doing this roundabout way cause normal HolderSet has verification which we don't want
-    public static final Codec<Holder.Reference<Item>> OPTIONAL_HOLDER = ResourceLocation.CODEC
-            .xmap(res -> BuiltInRegistries.ITEM.getHolder(res).orElse(Holder.Reference.createStandAlone(BuiltInRegistries.ITEM.holderOwner(), ResourceKey.create(Registries.ITEM, res))),
-                    ref -> ref.key().location());
+    public static final Codec<Holder.Reference<Item>> OPTIONAL_HOLDER = Identifier.CODEC
+            .xmap(res -> BuiltInRegistries.ITEM.get(res).orElse(Holder.Reference.createStandAlone(new HolderOwner<>() {
+            }, ResourceKey.create(Registries.ITEM, res))),
+                    ref -> ref.key().identifier());
 
     public static final Codec<Either<TagKey<Item>, Holder.Reference<Item>>> ITEM_HOLDER_CODEC =
             Codec.either(TagKey.hashedCodec(Registries.ITEM), OPTIONAL_HOLDER);
@@ -68,15 +70,15 @@ public record OptionalItemStack(Either<TagKey<Item>, Holder.Reference<Item>> ite
     }
 
     public Optional<Stream<Holder<Item>>> content() {
-        return this.item().map(t -> BuiltInRegistries.ITEM.getTag(t).map(HolderSet.ListBacked::stream), h -> h.isBound() ? Optional.of(Stream.of(h)) : Optional.empty());
+        return this.item().map(t -> BuiltInRegistries.ITEM.get(t).map(HolderSet.ListBacked::stream), h -> h.isBound() ? Optional.of(Stream.of(h)) : Optional.empty());
     }
 
     public Key key() {
-        return this.item().map(Key::ofTag, h -> Key.ofId(h.key().location()));
+        return this.item().map(Key::ofTag, h -> Key.ofId(h.key().identifier()));
     }
 
     public String keyString() {
-        return this.item().map(t -> "#" + t.location(), h -> h.key().location().toString());
+        return this.item().map(t -> "#" + t.location(), h -> h.key().identifier().toString());
     }
 
     public record Key(String namespace, String path, boolean tag) implements Comparable<Key> {
@@ -85,7 +87,7 @@ public record OptionalItemStack(Either<TagKey<Item>, Holder.Reference<Item>> ite
             return new Key(tag.location().getNamespace(), tag.location().getPath(), true);
         }
 
-        public static Key ofId(ResourceLocation id) {
+        public static Key ofId(Identifier id) {
             return new Key(id.getNamespace(), id.getPath(), false);
         }
 

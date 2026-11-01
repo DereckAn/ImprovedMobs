@@ -8,7 +8,7 @@ import io.github.flemmli97.improvedmobs.common.config.Config;
 import io.github.flemmli97.improvedmobs.common.config.equipment.EquipmentList;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.util.profiling.ProfilerFiller;
@@ -30,7 +30,7 @@ import java.util.concurrent.Executor;
 
 public class ItemUseLookupManager implements PreparableReloadListener {
 
-    public static final ResourceLocation ID = ImprovedMobs.modRes("item_use_lookup");
+    public static final Identifier ID = ImprovedMobs.modRes("item_use_lookup");
 
     private static ItemUseLookupManager INSTANCE;
 
@@ -88,7 +88,7 @@ public class ItemUseLookupManager implements PreparableReloadListener {
     }
 
     @Override
-    public CompletableFuture<Void> reload(PreparationBarrier stage, ResourceManager resourceManager, ProfilerFiller preparationsProfiler, ProfilerFiller reloadProfiler, Executor backgroundExecutor, Executor gameExecutor) {
+    public CompletableFuture<Void> reload(SharedState currentReload, Executor backgroundExecutor, PreparationBarrier stage, Executor gameExecutor) {
         return CompletableFuture.runAsync(() -> {
             ImmutableMap.Builder<Item, Collection<ItemUseHandler>> builder = ImmutableMap.builder();
             for (Item item : BuiltInRegistries.ITEM) {
@@ -97,6 +97,14 @@ public class ItemUseLookupManager implements PreparableReloadListener {
                     builder.put(item, handlers);
             }
             this.lookup = builder.build();
-        }).thenCompose(stage::wait).thenRun(() -> EquipmentList.initEquip(this.provider, this));
+        }, backgroundExecutor).thenCompose(stage::wait);
+    }
+
+    /**
+     * Since 26.1 item components and tags are only bound after all reload listeners finished,
+     * so the equipment list is built from the tags loaded event instead of during reload.
+     */
+    public void onReloadFinished() {
+        EquipmentList.initEquip(this.provider, this);
     }
 }

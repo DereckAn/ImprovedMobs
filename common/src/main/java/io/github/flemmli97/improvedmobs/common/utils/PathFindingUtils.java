@@ -4,7 +4,7 @@ import io.github.flemmli97.improvedmobs.ImprovedMobs;
 import io.github.flemmli97.improvedmobs.platform.CrossPlatformStuff;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.state.BlockState;
@@ -19,8 +19,8 @@ import java.util.function.Predicate;
 
 public class PathFindingUtils {
 
-    public static final ResourceLocation BREAKABLE = ImprovedMobs.modRes("breakable");
-    public static final ResourceLocation LADDER = ImprovedMobs.modRes("ladder");
+    public static final Identifier BREAKABLE = ImprovedMobs.modRes("breakable");
+    public static final Identifier LADDER = ImprovedMobs.modRes("ladder");
 
     public static Direction fromNodes(int x1, int z1, int x2, int z2) {
         // Assumes the nodes if diagonal have the direction applied as direction + direction.clockwise().
@@ -39,17 +39,17 @@ public class PathFindingUtils {
         return Direction.EAST;
     }
 
-    public static ResourceLocation getPathTypeNode(int x, int y, int z,
+    public static Identifier getPathTypeNode(int x, int y, int z,
                                                    int entityWidth, int entityHeight, int entityDepth,
-                                                   Function<BlockPos, ResourceLocation> pathTypeGetter) {
-        Set<ResourceLocation> types = new HashSet<>();
+                                                   Function<BlockPos, Identifier> pathTypeGetter) {
+        Set<Identifier> types = new HashSet<>();
         for (int dx = 0; dx < entityWidth; ++dx) {
             for (int dy = 0; dy < entityHeight; ++dy) {
                 for (int dz = 0; dz < entityDepth; ++dz) {
                     int xN = dx + x;
                     int yN = dy + y;
                     int zN = dz + z;
-                    ResourceLocation pathType = pathTypeGetter.apply(new BlockPos(xN, yN, zN));
+                    Identifier pathType = pathTypeGetter.apply(new BlockPos(xN, yN, zN));
                     types.add(pathType);
                     if (BREAKABLE.equals(pathType))
                         return pathType;
@@ -68,8 +68,8 @@ public class PathFindingUtils {
         return collision.test(aabb);
     }
 
-    public static ResourceLocation pathType(BlockGetter level, BlockState state, BlockPos pos, Mob entity, ResourceLocation... only) {
-        Set<ResourceLocation> included = only.length == 0 ? Collections.emptySet() : Set.of(only);
+    public static Identifier pathType(BlockGetter level, BlockState state, BlockPos pos, Mob entity, Identifier... only) {
+        Set<Identifier> included = only.length == 0 ? Collections.emptySet() : Set.of(only);
         if ((included.isEmpty() || included.contains(LADDER)) && Utils.canClimb(entity) && CrossPlatformStuff.INSTANCE.isClimbable(state, entity, pos)) {
             return LADDER;
         }

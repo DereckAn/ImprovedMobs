@@ -1,5 +1,6 @@
 package io.github.flemmli97.improvedmobs.common.entities.ai;
 
+import net.minecraft.world.item.component.SwingAnimation;
 import io.github.flemmli97.improvedmobs.api.difficulty.DifficultyFetcher;
 import io.github.flemmli97.improvedmobs.common.config.Config;
 import io.github.flemmli97.improvedmobs.common.utils.BlockRestorationData;
@@ -114,7 +115,7 @@ public class BlockBreakGoal extends Goal {
             if (this.digTimer % 5 == 0) {
                 SoundType sound = CrossPlatformStuff.INSTANCE.blockSound(state, this.living, this.diggingPosition);
                 this.living.level().playSeededSound(null, this.diggingPosition.getX() + 0.5, this.diggingPosition.getY() + 0.5, this.diggingPosition.getZ() + 0.5, Config.CommonConfig.useBlockBreakSound ? BuiltInRegistries.SOUND_EVENT.wrapAsHolder(sound.getBreakSound()) : SoundEvents.NOTE_BLOCK_BASS, SoundSource.BLOCKS, 2F, 0.5F, this.living.level().getRandom().nextLong());
-                this.living.swing(InteractionHand.MAIN_HAND);
+                this.living.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, true);
                 this.living.getLookControl().setLookAt(this.diggingPosition.getX(), this.diggingPosition.getY(), this.diggingPosition.getZ(), 0.0F, 0.0F);
                 this.living.level().destroyBlockProgress(this.living.getId(), this.diggingPosition, (int) (str * 10) - 1);
             }

@@ -16,7 +16,7 @@ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.level.pathfinder.Node;
 import net.minecraft.world.level.pathfinder.NodeEvaluator;
 import net.minecraft.world.level.pathfinder.PathType;
@@ -51,9 +51,9 @@ public abstract class WalkNodeMixin extends NodeEvaluator implements NodeEvaluat
     protected abstract boolean isNeighborValid(@org.jetbrains.annotations.Nullable Node neighbor, Node node);
 
     @Unique
-    private final Long2ObjectMap<ResourceLocation> improvedMobs$pathTypePosCache = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectMap<Identifier> improvedMobs$pathTypePosCache = new Long2ObjectOpenHashMap<>();
     @Unique
-    private final Long2ObjectMap<ResourceLocation> improvedMobs$pathTypeNodePosCache = new Long2ObjectOpenHashMap<>();
+    private final Long2ObjectMap<Identifier> improvedMobs$pathTypeNodePosCache = new Long2ObjectOpenHashMap<>();
 
     @Unique
     private final Long2ObjectMap<PathType> improvedMobs$defaultPathTypesCache = new Long2ObjectOpenHashMap<>();
@@ -100,7 +100,7 @@ public abstract class WalkNodeMixin extends NodeEvaluator implements NodeEvaluat
                 if (direction == null)
                     continue;
                 // Check if this node was marked as a breakable node
-                ResourceLocation type = this.improvedMob$pathTypeForNode(point.x, point.y, point.z);
+                Identifier type = this.improvedMob$pathTypeForNode(point.x, point.y, point.z);
                 if (PathFindingUtils.BREAKABLE.equals(type)) {
                     float malus = Math.max(point.costMalus, 2);
                     // Try add the node above to allow entities to jump over breakable blocks instead of taking time to dig
@@ -151,7 +151,7 @@ public abstract class WalkNodeMixin extends NodeEvaluator implements NodeEvaluat
 
     @ModifyReturnValue(method = "findAcceptedNode", at = @At("RETURN"))
     private Node updateNode(Node original, @Local(argsOnly = true) Direction direction) {
-        ResourceLocation type = original != null ? this.improvedMob$pathTypeForNode(original.x, original.y, original.z) : null;
+        Identifier type = original != null ? this.improvedMob$pathTypeForNode(original.x, original.y, original.z) : null;
         if (PathFindingUtils.LADDER.equals(type)) {
             if (this.improvedMob$collidesFrom(original.x, original.y, original.z, direction)) {
                 // This node should not be reachable from this direction
@@ -189,7 +189,7 @@ public abstract class WalkNodeMixin extends NodeEvaluator implements NodeEvaluat
     }
 
     @Unique
-    private ResourceLocation improvedMob$pathTypeForNode(int x, int y, int z) {
+    private Identifier improvedMob$pathTypeForNode(int x, int y, int z) {
         return this.improvedMobs$pathTypeNodePosCache.computeIfAbsent(BlockPos.asLong(x, y, z), l -> PathFindingUtils.getPathTypeNode(x, y, z,
                 this.entityWidth, this.entityHeight, this.entityDepth, this::improvedMobs$pathTypeOf));
     }
@@ -201,7 +201,7 @@ public abstract class WalkNodeMixin extends NodeEvaluator implements NodeEvaluat
     }
 
     @Override
-    public ResourceLocation improvedMobs$pathTypeOf(BlockPos pos, ResourceLocation... only) {
+    public Identifier improvedMobs$pathTypeOf(BlockPos pos, Identifier... only) {
         return this.improvedMobs$pathTypePosCache.computeIfAbsent(pos.asLong(),
                 p -> PathFindingUtils.pathType(this.currentContext.level(), this.currentContext.getBlockState(pos), pos, this.mob));
     }

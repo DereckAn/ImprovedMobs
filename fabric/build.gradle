@@ -7,24 +7,7 @@ ext {
     mod_meta.forge_config_api = forge_config_api
 }
 
-repositories {
-    maven {
-        name = 'Ladysnake Mods'
-        url = 'https://maven.ladysnake.org/releases'
-        content {
-            includeGroup 'dev.onyxstudios.cardinal-components-api'
-        }
-    }
-}
-
 dependencies {
-    modImplementation "io.github.flemmli97:tenshilib:${tenshilib_version}-fabric"
-    modApi "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${forge_config_api}"
-
-    //CompileOnly cause not getting all deps... get a maven pls
-    modCompileOnly "${playerex}"
-    modCompileOnly "dev.onyxstudios.cardinal-components-api:cardinal-components-base:4.2.0"
-    modCompileOnly "${levelz}"
-
-    modRuntimeOnly "io.github.flemmli97:debugutils:1.21.1-1.0.8-fabric"
+    implementation "io.github.flemmli97:tenshilib:${tenshilib_version}-fabric"
+    api "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${forge_config_api}"
 }

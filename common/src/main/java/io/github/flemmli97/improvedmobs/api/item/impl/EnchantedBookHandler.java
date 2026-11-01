@@ -28,7 +28,7 @@ public class EnchantedBookHandler implements ItemUseHandler {
     public int use(LivingEntity entity, LivingEntity target, InteractionHand hand) {
         List<Entity> nearby = entity.level().getEntities(entity, entity.getBoundingBox().inflate(8.0D));
         List<Entity> nearTarget = entity.level().getEntities(target, target.getBoundingBox().inflate(2.0D));
-        if (nearby.isEmpty() || nearby.size() == 1 && nearby.get(0) == target || entity.level().random.nextInt(3) <= 1) {
+        if (nearby.isEmpty() || nearby.size() == 1 && nearby.get(0) == target || entity.level().getRandom().nextInt(3) <= 1) {
             if (nearTarget.isEmpty())
                 for (int x = -1; x <= 1; x++)
                     for (int z = -1; z <= 1; z++) {
@@ -45,9 +45,9 @@ public class EnchantedBookHandler implements ItemUseHandler {
             }
         } else {
             for (int i = 0; i < nearby.size(); i++) {
-                Entity entityRand = nearby.get(entity.level().random.nextInt(nearby.size()));
+                Entity entityRand = nearby.get(entity.level().getRandom().nextInt(nearby.size()));
                 if (entityRand instanceof Monster mob && entityRand != target) {
-                    BuiltInRegistries.MOB_EFFECT.getTag(ImprovedMobsTags.ENCHANTED_BOOK_EFFECT)
+                    BuiltInRegistries.MOB_EFFECT.get(ImprovedMobsTags.ENCHANTED_BOOK_EFFECT)
                             .flatMap(n -> n.getRandomElement(mob.getRandom()))
                             .ifPresent(effect -> {
                                 entity.playSound(SoundEvents.ELDER_GUARDIAN_CURSE, 2, 1);

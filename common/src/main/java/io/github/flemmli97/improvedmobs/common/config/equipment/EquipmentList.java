@@ -16,7 +16,13 @@ import io.github.flemmli97.improvedmobs.api.item.ItemUseHandler;
 import io.github.flemmli97.improvedmobs.platform.CrossPlatformStuff;
 import io.github.flemmli97.tenshilib.common.utils.CodecUtils;
 import io.github.flemmli97.tenshilib.common.utils.ItemUtils;
+import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.tags.ItemTags;
+import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.enchantment.Enchantable;
+import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.util.GsonHelper;
@@ -24,19 +30,13 @@ import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.Mob;
 import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.item.ArmorItem;
-import net.minecraft.world.item.ArmorMaterials;
-import net.minecraft.world.item.AxeItem;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.CrossbowItem;
-import net.minecraft.world.item.DiggerItem;
-import net.minecraft.world.item.Equipable;
 import net.minecraft.world.item.FishingRodItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ShieldItem;
-import net.minecraft.world.item.SwordItem;
 import net.minecraft.world.item.ThrowablePotionItem;
 import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.item.alchemy.PotionContents;
@@ -145,17 +145,18 @@ public class EquipmentList {
     private static void initDefaultVals(ItemUseLookupManager manager, HolderLookup.Provider provider) {
         EQUIPMENTS = new EnumMap<>(EquipmentSlot.class);
         Map<EquipmentSlot, List<Pair<ItemScore, OptionalItemStack>>> inverseWeight = new HashMap<>();
-        BuiltInRegistries.ITEM.holders().forEach(holder -> {
+        BuiltInRegistries.ITEM.listElements().forEach(holder -> {
             EquipmentSlot slot = null;
             Item item = holder.value();
             if (item instanceof BowItem)
                 slot = EquipmentSlot.MAINHAND;
-            if (item instanceof Equipable equipable && equipable.getEquipmentSlot().getType() != EquipmentSlot.Type.ANIMAL_ARMOR) {
-                slot = equipable.getEquipmentSlot();
+            Equippable equippable = item.components().get(DataComponents.EQUIPPABLE);
+            if (equippable != null && equippable.slot().getType() != EquipmentSlot.Type.ANIMAL_ARMOR && equippable.slot().getType() != EquipmentSlot.Type.SADDLE) {
+                slot = equippable.slot();
             }
-            if (item instanceof SwordItem || item instanceof DiggerItem)
-                if (!defaultBlackLists(item))
-                    slot = EquipmentSlot.MAINHAND;
+            // Tool item classes are gone since 1.21.5. Swords and axes are mob weapons, other tools are not
+            if ((inTag(provider, holder, ItemTags.SWORDS) || inTag(provider, holder, ItemTags.AXES)) && !isBlacklistedNamespace(item))
+                slot = EquipmentSlot.MAINHAND;
             ItemUseHandler ai = manager.get(item).stream().findFirst().orElse(null);
             if (ai != null) {
                 slot = ai.defaultedSlot();
@@ -205,9 +206,14 @@ public class EquipmentList {
         return max == min ? 0.0 : Math.clamp((value - min) / (max - min), 0, 1);
     }
 
-    private static boolean defaultBlackLists(Item item) {
-        if (item instanceof DiggerItem && !(item instanceof AxeItem))
-            return true;
+    /**
+     * Tags are not bound to the items yet while datapacks reload so check against the reload lookup instead
+     */
+    private static boolean inTag(HolderLookup.Provider provider, Holder<Item> holder, TagKey<Item> tag) {
+        return provider.lookupOrThrow(Registries.ITEM).get(tag).map(set -> set.contains(holder)).orElse(false);
+    }
+
+    private static boolean isBlacklistedNamespace(Item item) {
         return BuiltInRegistries.ITEM.getKey(item).getNamespace().equals("mobbattle");
     }
 
@@ -224,21 +230,17 @@ public class EquipmentList {
         }
         double toughness = ItemUtils.attribute(stack, Attributes.ARMOR_TOUGHNESS, 0, EquipmentSlotGroup.values());
         double knockbackResistance = ItemUtils.attribute(stack, Attributes.KNOCKBACK_RESISTANCE, 0, EquipmentSlotGroup.values());
-        int enchantmentValue = item.getEnchantmentValue();
+        Enchantable enchantable = item.components().get(DataComponents.ENCHANTABLE);
+        int enchantmentValue = enchantable != null ? enchantable.value() : 0;
         ItemScore remote = OtherScores.score(item, durability, damage, armor, toughness, knockbackResistance, enchantmentValue);
         if (remote != null)
             return remote;
         double multiplier = 1;
-        if (item instanceof ArmorItem armorItem) {
-            try {
-                multiplier *= !armorItem.getMaterial().value().repairIngredient().get().isEmpty() ? 1.1 : 1;
-            } catch (Exception e) {
-                ImprovedMobs.LOGGER.error("Cannot compute repair ingredient {}", BuiltInRegistries.ITEM.getKey(item), e);
-            }
-            multiplier *= (armorItem.getMaterial() == ArmorMaterials.LEATHER || armorItem.getMaterial() == ArmorMaterials.GOLD
-                    || armorItem.getMaterial() == ArmorMaterials.CHAIN || armorItem.getMaterial() == ArmorMaterials.IRON
-                    || armorItem.getMaterial() == ArmorMaterials.DIAMOND || armorItem.getMaterial() == ArmorMaterials.NETHERITE
-                    || armorItem.getMaterial() == ArmorMaterials.TURTLE) ? 0.9 : 1;
+        Equippable equippable = item.components().get(DataComponents.EQUIPPABLE);
+        if (equippable != null && equippable.slot().getType() == EquipmentSlot.Type.HUMANOID_ARMOR) {
+            // Armor materials are no longer attached to the item. Repairable armor scores higher, vanilla armor lower
+            multiplier *= item.components().has(DataComponents.REPAIRABLE) ? 1.1 : 1;
+            multiplier *= BuiltInRegistries.ITEM.getKey(item).getNamespace().equals("minecraft") ? 0.9 : 1;
         }
         double utilityScore = 100;
         // MainHand
