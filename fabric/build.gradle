@@ -9,5 +9,7 @@ ext {
 
 dependencies {
     implementation "io.github.flemmli97:tenshilib:${tenshilib_version}-fabric"
+    // Bundled so players only need to install Improved Mobs
+    include "io.github.flemmli97:tenshilib:${tenshilib_version}-fabric"
     api "fuzs.forgeconfigapiport:forgeconfigapiport-fabric:${forge_config_api}"
 }
